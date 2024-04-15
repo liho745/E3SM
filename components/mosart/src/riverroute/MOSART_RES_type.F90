@@ -22,7 +22,7 @@ module MOSART_RES_type
   use shr_sys_mod   , only : shr_sys_flush, shr_sys_abort
   use netcdf
   use pio
-  use WRM_type_mod  , only : ctlSubwWRM, WRMUnit 
+  use WRM_type_mod  , only : ctlSubwWRM, WRMUnit, StorWater 
 
 ! !PUBLIC TYPES:
   implicit none
