@@ -128,6 +128,10 @@ module MOSART_RES_type
                 Tres_para%Tres(iunit) = CRTres(WRMUnit%StorCap(damID), WRMUnit%MeanMthFlow(damID,13))
                 Tres_para%Eff_trapping(iunit) = CREff_trapping(Tres_para%Tres(iunit))
                 !write(iulog,*) ' Reservoir Trapping ', iunit, WRMUnit%StorCap(damID), WRMUnit%MeanMthFlow(damID,13), Tres_para%Tres(iunit), Tres_para%Eff_trapping(iunit)
+                if ((ctlSubwWRM%DamConstructionFlag .eq. 1) .and. (StorWater%active_stage(damID) <= 0)) then
+                    Tres_para%Tres(iunit) = 0._r8
+                    Tres_para%Eff_trapping(iunit) = 0._r8
+                end if
             else
                 Tres_para%Tres(iunit) = 0._r8
                 Tres_para%Eff_trapping(iunit) = 0._r8
