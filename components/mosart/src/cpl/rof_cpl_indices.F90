@@ -48,13 +48,24 @@ module rof_cpl_indices
   integer, public :: index_x2r_coszen_str  = 0   ! lnd->rof Cosine of Zenith
   integer, public :: index_x2r_So_ssh = 0        ! ocn->rof ssh from ocean
 
+  integer, public :: index_x2r_Flrl_rofsur_DOC  = 0   ! lnd->rof DOC water flux in liquid surface runoff
+  integer, public :: index_x2r_Flrl_rofsub_DOC  = 0   ! lnd->rof DOC water flux in liquid subsurface runoff
+  integer, public :: index_x2r_Flrl_rofi_DOC  = 0     ! lnd->rof DOC water flux in ice runoff
+  integer, public :: index_x2r_Flrl_rofsur_POC  = 0   ! lnd->rof POC water flux in liquid surface runoff
+  integer, public :: index_x2r_Flrl_rofsub_POC  = 0   ! lnd->rof POC water flux in liquid subsurface runoff
+  integer, public :: index_x2r_Flrl_rofi_POC  = 0     ! lnd->rof POC water flux in ice runoff
+
   !TODO - nt_rtm and rtm_tracers need to be removed and set by access to the index array
-  integer, parameter, public :: nt_rtm = 4    ! number of tracers
-  character(len=3), parameter, public :: rtm_tracers(nt_rtm) =  (/'LIQ','ICE','MUD','SAN'/)
+  integer, parameter, public :: nt_rtm = 8    ! number of tracers
+  character(len=7), parameter, public :: rtm_tracers(nt_rtm) =  (/'LIQ','ICE','MUD','SAN','LIQ_DOC','ICE_DOC','LIQ_POC','ICE_POC'/)
   integer, parameter, public :: nt_nliq = 1    ! number of tracers
   integer, parameter, public :: nt_nice = 2    ! number of tracers
   integer, parameter, public :: nt_nmud = 3    ! number of tracers
   integer, parameter, public :: nt_nsan = 4    ! number of tracers
+  integer, parameter, public :: nt_nliq_DOC = 5    ! number of tracers
+  integer, parameter, public :: nt_nliq_POC = 6    ! number of tracers
+  integer, parameter, public :: nt_nice_DOC = 7    ! number of tracers
+  integer, parameter, public :: nt_nice_POC = 8    ! number of tracers
 
   !Routing methods used for the main-channel
   integer, parameter, public :: KW = 1         ! kinematic wave routing method
@@ -82,7 +93,20 @@ module rof_cpl_indices
   integer, public :: index_r2x_Flrr_deficit = 0 ! rof->lnd supply deficit
   integer, public :: index_r2x_Sr_h2orof      = 0  ! rof->lnd floodplain inundation volume
   integer, public :: index_r2x_Sr_frac_h2orof = 0  ! rof->lnd floodplain inundation fraction
+  integer, public :: index_r2x_Forr_rofl_DOC  = 0   ! rof->ocn DOC in liquid runoff to ocean
+  integer, public :: index_r2x_Forr_rofi_DOC  = 0   ! rof->ocn DOC in ice runoff to ocean
+  integer, public :: index_r2x_Flrr_flood_DOC = 0   ! rof->lnd DOC in flood runoff (>fthresh) back to land
+  integer, public :: index_r2x_Flrr_volr_DOC = 0    ! rof->lnd DOC in volr total volume back to land
+  integer, public :: index_r2x_Flrr_volrmch_DOC = 0 ! rof->lnd DOC in volr main channel back to land
+  integer, public :: index_r2x_Flrr_supply_DOC = 0  ! rof->lnd DOC in supply flux for land use
+  integer, public :: index_r2x_Forr_rofl_POC  = 0   ! rof->ocn POC in liquid runoff to ocean
+  integer, public :: index_r2x_Forr_rofi_POC  = 0   ! rof->ocn POC in ice runoff to ocean
+  integer, public :: index_r2x_Flrr_flood_POC = 0   ! rof->lnd POC in flood runoff (>fthresh) back to land
+  integer, public :: index_r2x_Flrr_volr_POC = 0    ! rof->lnd POC in volr total volume back to land
+  integer, public :: index_r2x_Flrr_volrmch_POC = 0 ! rof->lnd POC in volr main channel back to land
+  integer, public :: index_r2x_Flrr_supply_POC = 0  ! rof->lnd POC in supply flux for land use
   integer, public :: nflds_r2x = 0
+
 
 !=======================================================================
 contains
@@ -101,7 +125,7 @@ contains
     ! !USES:
     use seq_flds_mod  , only: seq_flds_r2x_fields, seq_flds_x2r_fields, rof_heat, &
                               rof2ocn_nutrients, lnd_rof_two_way, ocn_rof_two_way, &
-                              rof_sed
+                              rof_sed, rof_bgc
     use mct_mod       , only: mct_aVect, mct_aVect_init, mct_avect_indexra, &
                               mct_aVect_clean, mct_avect_nRattr
     !
@@ -145,13 +169,22 @@ contains
     endif
 
     index_x2r_coszen_str  = mct_avect_indexra(avtmp,'coszen_str')
-	if (rof_sed) then
+    if (rof_sed) then
         index_x2r_Flrl_rofmud = mct_avect_indexra(avtmp,'Flrl_rofmud')
-	end if
+    end if
     if (lnd_rof_two_way) then
       index_x2r_Flrl_inundinf =  mct_avect_indexra(avtmp,'Flrl_inundinf')
     endif
 
+    if (rof_bgc) then
+      index_x2r_Flrl_rofsur_DOC = mct_avect_indexra(avtmp,'Flrl_rofsur_DOC')
+      index_x2r_Flrl_rofsub_DOC = mct_avect_indexra(avtmp,'Flrl_rofsub_DOC')
+      index_x2r_Flrl_rofi_DOC   = mct_avect_indexra(avtmp,'Flrl_rofi_DOC')
+      index_x2r_Flrl_rofsur_POC = mct_avect_indexra(avtmp,'Flrl_rofsur_POC')
+      index_x2r_Flrl_rofsub_POC = mct_avect_indexra(avtmp,'Flrl_rofsub_POC')
+      index_x2r_Flrl_rofi_POC   = mct_avect_indexra(avtmp,'Flrl_rofi_POC')
+    end if
+    
     nflds_x2r = mct_avect_nRattr(avtmp)
 
     call mct_aVect_clean(avtmp)
@@ -162,6 +195,7 @@ contains
 
     index_r2x_Forr_rofl  = mct_avect_indexra(avtmp,'Forr_rofl')
     index_r2x_Forr_rofi  = mct_avect_indexra(avtmp,'Forr_rofi')
+    
     if (rof2ocn_nutrients) then
        index_r2x_Forr_rofDIN = mct_avect_indexra(avtmp,'Forr_rofDIN')
        index_r2x_Forr_rofDIP = mct_avect_indexra(avtmp,'Forr_rofDIP')
@@ -185,7 +219,16 @@ contains
       index_r2x_Sr_h2orof       = mct_avect_indexra(avtmp,'Sr_h2orof')
       index_r2x_Sr_frac_h2orof  = mct_avect_indexra(avtmp,'Sr_frac_h2orof')
     endif
-    
+
+	if (rof_bgc) then
+      index_r2x_Forr_rofl_DOC = mct_avect_indexra(avtmp,'Forr_rofl_DOC')
+      index_r2x_Forr_rofi_DOC = mct_avect_indexra(avtmp,'Forr_rofi_DOC')
+      index_r2x_Flrr_volr_DOC = mct_avect_indexra(avtmp,'Flrr_volr_DOC')
+      index_r2x_Forr_rofl_POC = mct_avect_indexra(avtmp,'Forr_rofl_POC')
+      index_r2x_Forr_rofi_POC = mct_avect_indexra(avtmp,'Forr_rofi_POC')
+      index_r2x_Flrr_volr_POC = mct_avect_indexra(avtmp,'Flrr_volr_POC')
+    end if
+        
     nflds_r2x = mct_avect_nRattr(avtmp)
 
     call mct_aVect_clean(avtmp)

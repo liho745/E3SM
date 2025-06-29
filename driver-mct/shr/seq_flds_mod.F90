@@ -161,6 +161,7 @@ module seq_flds_mod
   logical            :: lnd_rof_two_way     ! .true. if land-river two-way coupling turned on
   logical            :: ocn_rof_two_way     ! .true. if river-ocean two-way coupling turned on
   logical            :: rof_sed             ! .true. if river model includes sediment
+  logical            :: rof_bgc             ! .true. if river model includes bgc
 
   !----------------------------------------------------------------------------
   ! metadata
@@ -385,7 +386,7 @@ contains
          flds_co2a, flds_co2b, flds_co2c, flds_co2_dmsa, flds_wiso, glc_nec, &
          ice_ncat, seq_flds_i2o_per_cat, flds_bgc_oi, &
          nan_check_component_fields, rof_heat, atm_flux_method, atm_gustiness, &
-         rof2ocn_nutrients, lnd_rof_two_way, ocn_rof_two_way, rof_sed
+         rof2ocn_nutrients, lnd_rof_two_way, ocn_rof_two_way, rof_sed, rof_bgc
 
     ! user specified new fields
     integer,  parameter :: nfldmax = 200
@@ -427,6 +428,7 @@ contains
        lnd_rof_two_way   = .false.
        ocn_rof_two_way   = .false.
        rof_sed   = .false.
+       rof_bgc   = .false.
 
        unitn = shr_file_getUnit()
        write(logunit,"(A)") subname//': read seq_cplflds_inparm namelist from: '&
@@ -460,6 +462,7 @@ contains
     call shr_mpi_bcast(lnd_rof_two_way,   mpicom)
     call shr_mpi_bcast(ocn_rof_two_way,   mpicom)
     call shr_mpi_bcast(rof_sed,   mpicom)
+    call shr_mpi_bcast(rof_bgc,   mpicom)
 
     call glc_elevclass_init(glc_nec)
 
@@ -2202,7 +2205,7 @@ contains
        attname  = 'coszen_str'
        call metadata_set(attname, longname, stdname, units)
        
-	   if (rof_sed) then
+       if (rof_sed) then
           call seq_flds_add(l2x_fluxes,'Flrl_rofmud')
           call seq_flds_add(l2x_fluxes_to_rof,'Flrl_rofmud')
           call seq_flds_add(x2r_fluxes,'Flrl_rofmud')
@@ -2211,11 +2214,66 @@ contains
           units    = 'kg m-2 s-1'
           attname  = 'Flrl_rofmud'
           call metadata_set(attname, longname, stdname, units)
-	   end if
+       end if
+
+       if (rof_bgc) then
+          call seq_flds_add(l2x_fluxes,'Flrl_rofsur_DOC')
+          call seq_flds_add(l2x_fluxes_to_rof,'Flrl_rofsur_DOC')
+          call seq_flds_add(x2r_fluxes,'Flrl_rofsur_DOC')
+          longname = 'DOC flux from land (liquid surface)'
+          stdname  = 'DOC_flux_into_runoff_surface'
+          units    = 'gC m-2 s-1'
+          attname  = 'Flrl_rofsur_DOC'
+          call metadata_set(attname, longname, stdname, units)
+    
+          call seq_flds_add(l2x_fluxes,'Flrl_rofsur_POC')
+          call seq_flds_add(l2x_fluxes_to_rof,'Flrl_rofsur_POC')
+          call seq_flds_add(x2r_fluxes,'Flrl_rofsur_POC')
+          longname = 'POC flux from land (liquid surface)'
+          stdname  = 'POC_flux_into_runoff_surface'
+          units    = 'gC m-2 s-1'
+          attname  = 'Flrl_rofsur_POC'
+          call metadata_set(attname, longname, stdname, units)
+    
+          call seq_flds_add(l2x_fluxes,'Flrl_rofsub_DOC')
+          call seq_flds_add(l2x_fluxes_to_rof,'Flrl_rofsub_DOC')
+          call seq_flds_add(x2r_fluxes,'Flrl_rofsub_DOC')
+          longname = 'DOC flux from land (liquid subsurface)'
+          stdname  = 'DOC_flux_into_runoff_subsurface'
+          units    = 'gC m-2 s-1'
+          attname  = 'Flrl_rofsub_DOC'
+          call metadata_set(attname, longname, stdname, units)
+    
+          call seq_flds_add(l2x_fluxes,'Flrl_rofsub_POC')
+          call seq_flds_add(l2x_fluxes_to_rof,'Flrl_rofsub_POC')
+          call seq_flds_add(x2r_fluxes,'Flrl_rofsub_POC')
+          longname = 'POC flux from land (liquid subsurface)'
+          stdname  = 'POC_flux_into_runoff_subsurface'
+          units    = 'gC m-2 s-1'
+          attname  = 'Flrl_rofsub_POC'
+          call metadata_set(attname, longname, stdname, units)
+    
+          call seq_flds_add(l2x_fluxes,'Flrl_rofi_DOC')
+          call seq_flds_add(l2x_fluxes_to_rof,'Flrl_rofi_DOC')
+          call seq_flds_add(x2r_fluxes,'Flrl_rofi_DOC')
+          longname = 'DOC flux from land (frozen runoff )'
+          stdname  = 'DOC_flux_into_frozen_runoff'
+          units    = 'gC m-2 s-1'
+          attname  = 'Flrl_rofi_DOC'
+          call metadata_set(attname, longname, stdname, units)
+           
+          call seq_flds_add(l2x_fluxes,'Flrl_rofi_POC')
+          call seq_flds_add(l2x_fluxes_to_rof,'Flrl_rofi_POC')
+          call seq_flds_add(x2r_fluxes,'Flrl_rofi_POC')
+          longname = 'POC flux from land (frozen runoff )'
+          stdname  = 'POC_flux_into_frozen_runoff'
+          units    = 'gC m-2 s-1'
+          attname  = 'Flrl_rofi_POC'
+          call metadata_set(attname, longname, stdname, units)
+       end if
 
     endif
 
-	
     !-----------------------------
     ! rof->ocn (runoff) and rof->lnd (flooding)
     !-----------------------------
@@ -2320,6 +2378,64 @@ contains
       call metadata_set(attname, longname, stdname, units)
     endif
 
+    if (rof_bgc) then
+       call seq_flds_add(r2x_fluxes,'Forr_rofl_DOC')
+       call seq_flds_add(x2o_fluxes,'Foxx_rofl_DOC')
+       longname = 'DOC flux due to runoff (liquid)'
+       stdname  = 'DOC_liquid_flux_into_sea_water'
+       units    = 'gC m-2 s-1'
+       attname  = 'Forr_rofl_DOC'
+       call metadata_set(attname, longname, stdname, units)
+       attname  = 'Foxx_rofl_DOC'
+       call metadata_set(attname, longname, stdname, units)
+    
+       call seq_flds_add(r2x_fluxes,'Forr_rofi_DOC')
+       call seq_flds_add(x2o_fluxes,'Foxx_rofi_DOC')
+       longname = 'DOC flux due to runoff (frozen)'
+       stdname  = 'DOC_frozen_water_flux_into_sea_water'
+       units    = 'gC m-2 s-1'
+       attname  = 'Forr_rofi_DOC'
+       call metadata_set(attname, longname, stdname, units)
+       attname  = 'Foxx_rofi_DOC'
+       call metadata_set(attname, longname, stdname, units)
+        
+       call seq_flds_add(r2x_fluxes,'Forr_rofl_POC')
+       call seq_flds_add(x2o_fluxes,'Foxx_rofl_POC')
+       longname = 'POC flux due to runoff (liquid)'
+       stdname  = 'POC_liquid_flux_into_sea_water'
+       units    = 'gC m-2 s-1'
+       attname  = 'Forr_rofl_POC'
+       call metadata_set(attname, longname, stdname, units)
+       attname  = 'Foxx_rofl_POC'
+       call metadata_set(attname, longname, stdname, units)
+    
+       call seq_flds_add(r2x_fluxes,'Forr_rofi_POC')
+       call seq_flds_add(x2o_fluxes,'Foxx_rofi_POC')
+       longname = 'POC flux due to runoff (frozen)'
+       stdname  = 'POC_frozen_water_flux_into_sea_water'
+       units    = 'gC m-2 s-1'
+       attname  = 'Forr_rofi_POC'
+       call metadata_set(attname, longname, stdname, units)
+       attname  = 'Foxx_rofi_POC'
+       call metadata_set(attname, longname, stdname, units)
+        
+       call seq_flds_add(r2x_fluxes,'Flrr_volr_DOC')
+       call seq_flds_add(x2l_fluxes,'Flrr_volr_DOC')
+       longname = 'River channel total DOC storage'
+       stdname  = 'DOC_volr'
+       units    = 'gC'
+       attname  = 'Flrr_volr_DOC'
+       call metadata_set(attname, longname, stdname, units)
+    
+       call seq_flds_add(r2x_fluxes,'Flrr_volr_POC')
+       call seq_flds_add(x2l_fluxes,'Flrr_volr_POC')
+       longname = 'River channel total POC storage'
+       stdname  = 'POC_volr'
+       units    = 'gC'
+       attname  = 'Flrr_volr_POC'
+       call metadata_set(attname, longname, stdname, units)
+    end if
+    
     if (rof2ocn_nutrients) then
        call seq_flds_add(r2x_fluxes,'Forr_rofDIN')
        call seq_flds_add(x2o_fluxes,'Foxx_rofDIN')

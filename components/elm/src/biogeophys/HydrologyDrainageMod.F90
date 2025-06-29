@@ -6,6 +6,7 @@ module HydrologyDrainageMod
   !
   use shr_kind_mod      , only : r8 => shr_kind_r8
   use shr_log_mod       , only : errMsg => shr_log_errMsg
+  use seq_flds_mod      , only : rof_bgc
   use decompMod         , only : bounds_type
   use elm_varctl        , only : iulog, use_vichydro
   use elm_varcon        , only : e_ice, denh2o, denice, rpi, spval
@@ -122,7 +123,7 @@ contains
          qflx_glcice            => col_wf%qflx_glcice             , & ! Output: [real(r8) (:)   ]  flux of new glacier ice (mm H2O /s)
          qflx_glcice_frz        => col_wf%qflx_glcice_frz           & ! Output: [real(r8) (:)   ]  ice growth (positive definite) (mm H2O/s)
          )
-
+		 
       ! Determine time step and step size
 
       dtime = dtime_mod
@@ -203,7 +204,7 @@ contains
          c = filter_nolakec(fc)
          endwb(c) = endwb(c) + total_plant_stored_h2o(c)
       end do
-
+            
       ! Prior to summing up wetland/ice hydrology, calculate land ice contributions/sinks
       ! to this hydrology.
       ! 1) Generate SMB from capped-snow amount.  This is done over istice_mec

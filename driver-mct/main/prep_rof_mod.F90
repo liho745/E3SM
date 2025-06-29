@@ -569,6 +569,20 @@ contains
     integer, save :: index_l2x_coszen_str
     integer, save :: index_x2r_coszen_str
 
+    !river_bgc
+    integer, save :: index_l2x_Flrl_rofsur_DOC
+    integer, save :: index_l2x_Flrl_rofsur_POC
+    integer, save :: index_l2x_Flrl_rofsub_DOC
+    integer, save :: index_l2x_Flrl_rofsub_POC
+    integer, save :: index_l2x_Flrl_rofi_DOC
+    integer, save :: index_l2x_Flrl_rofi_POC
+    integer, save :: index_x2r_Flrl_rofsur_DOC
+    integer, save :: index_x2r_Flrl_rofsur_POC
+    integer, save :: index_x2r_Flrl_rofsub_DOC
+    integer, save :: index_x2r_Flrl_rofsub_POC
+    integer, save :: index_x2r_Flrl_rofi_DOC
+    integer, save :: index_x2r_Flrl_rofi_POC
+
     integer, save :: index_frac
     real(r8)      :: frac
     character(CL) :: fracstr
@@ -620,7 +634,22 @@ contains
          index_x2r_Flrl_Tqsur = mct_aVect_indexRA(x2r_r,'Flrl_Tqsur' )
          index_x2r_Flrl_Tqsub = mct_aVect_indexRA(x2r_r,'Flrl_Tqsub' )
        endif
-
+       !river_bgc
+       if(rof_bgc) then
+         index_l2x_Flrl_rofsur_DOC= mct_aVect_indexRA(l2x_r,'Flrl_rofsur_DOC' )
+         index_l2x_Flrl_rofsur_POC= mct_aVect_indexRA(l2x_r,'Flrl_rofsur_POC' )
+         index_l2x_Flrl_rofsub_DOC= mct_aVect_indexRA(l2x_r,'Flrl_rofsub_DOC' )
+         index_l2x_Flrl_rofsub_POC= mct_aVect_indexRA(l2x_r,'Flrl_rofsub_POC' )
+         index_l2x_Flrl_rofi_DOC= mct_aVect_indexRA(l2x_r,'Flrl_rofi_DOC' )
+         index_l2x_Flrl_rofi_POC= mct_aVect_indexRA(l2x_r,'Flrl_rofi_POC' )
+         index_x2r_Flrl_rofsur_DOC= mct_aVect_indexRA(x2r_r,'Flrl_rofsur_DOC' )
+         index_x2r_Flrl_rofsur_POC= mct_aVect_indexRA(x2r_r,'Flrl_rofsur_POC' )
+         index_x2r_Flrl_rofsub_DOC= mct_aVect_indexRA(x2r_r,'Flrl_rofsub_DOC' )
+         index_x2r_Flrl_rofsub_POC= mct_aVect_indexRA(x2r_r,'Flrl_rofsub_POC' )
+         index_x2r_Flrl_rofi_DOC= mct_aVect_indexRA(x2r_r,'Flrl_rofi_DOC' )
+         index_x2r_Flrl_rofi_POC= mct_aVect_indexRA(x2r_r,'Flrl_rofi_POC' )
+       end if
+       
        index_l2x_Flrl_rofl_16O = mct_aVect_indexRA(l2x_r,'Flrl_rofl_16O', perrWith='quiet' )
        if (rof_sed) then
           index_l2x_Flrl_rofmud = mct_aVect_indexRA(l2x_r,'Flrl_rofmud' )
@@ -673,6 +702,22 @@ contains
        if (rof_sed) then
           mrgstr(index_x2r_Flrl_rofmud) = trim(mrgstr(index_x2r_Flrl_rofmud))//' = '// &
                trim(fracstr)//'*l2x%Flrl_rofmud'
+       end if
+       if (rof_bgc) then
+          mrgstr(index_x2r_Flrl_rofsur_DOC) = trim(mrgstr(index_x2r_Flrl_rofsur_DOC))//' = '// &
+             'lfrac*l2x%Flrl_rofsur_DOC'
+          mrgstr(index_x2r_Flrl_rofsur_POC) = trim(mrgstr(index_x2r_Flrl_rofsur_POC))//' = '// &
+             'lfrac*l2x%Flrl_rofsur_POC'      
+               
+          mrgstr(index_x2r_Flrl_rofsub_DOC) = trim(mrgstr(index_x2r_Flrl_rofsub_DOC))//' = '// &
+             'lfrac*l2x%Flrl_rofsub_DOC'
+          mrgstr(index_x2r_Flrl_rofsub_POC) = trim(mrgstr(index_x2r_Flrl_rofsub_POC))//' = '// &
+             'lfrac*l2x%Flrl_rofsub_POC'    
+             
+          mrgstr(index_x2r_Flrl_rofi_DOC) = trim(mrgstr(index_x2r_Flrl_rofi_DOC))//' = '// &
+             'lfrac*l2x%Flrl_rofi_DOC'
+          mrgstr(index_x2r_Flrl_rofi_POC) = trim(mrgstr(index_x2r_Flrl_rofi_POC))//' = '// &
+             'lfrac*l2x%Flrl_rofi_POC'
        end if
        if(trim(cime_model) .eq. 'e3sm') then
           mrgstr(index_x2r_Flrl_Tqsur) = trim(mrgstr(index_x2r_Flrl_Tqsur))//' = '//'l2x%Flrl_Tqsur'
@@ -758,6 +803,14 @@ contains
        end if
        if (rof_sed) then
           x2r_r%rAttr(index_x2r_Flrl_rofmud,i) = l2x_r%rAttr(index_l2x_Flrl_rofmud,i) * frac
+       end if
+       if (rof_bgc) then
+          x2r_r%rAttr(index_x2r_Flrl_rofsur_DOC,i) = l2x_r%rAttr(index_l2x_Flrl_rofsur_DOC,i) * frac
+          x2r_r%rAttr(index_x2r_Flrl_rofsur_POC,i) = l2x_r%rAttr(index_l2x_Flrl_rofsur_POC,i) * frac
+          x2r_r%rAttr(index_x2r_Flrl_rofsub_DOC,i) = l2x_r%rAttr(index_l2x_Flrl_rofsub_DOC,i) * frac
+          x2r_r%rAttr(index_x2r_Flrl_rofsub_POC,i) = l2x_r%rAttr(index_l2x_Flrl_rofsub_POC,i) * frac
+          x2r_r%rAttr(index_x2r_Flrl_rofi_DOC,i) = l2x_r%rAttr(index_l2x_Flrl_rofi_DOC,i) * frac
+          x2r_r%rAttr(index_x2r_Flrl_rofi_POC,i) = l2x_r%rAttr(index_l2x_Flrl_rofi_POC,i) * frac 
        end if
        if(trim(cime_model) .eq. 'e3sm') then
          x2r_r%rAttr(index_x2r_Flrl_Tqsur,i) = l2x_r%rAttr(index_l2x_Flrl_Tqsur,i)

@@ -66,9 +66,13 @@ module MOSART_RES_type
      !! states
      real(r8), pointer :: wres(:,:)    ! MOSART reservoir storage (m3 for water, kg for mud and sand sediment)
      real(r8), pointer :: dwres(:,:)   ! MOSART reservoir storage change (m3 for water, kg for mud and sand sediment)
+     real(r8), pointer :: conc(:,:)    ! MOSART reservoir BGC concentration (kg/m3)																				   
      !! exchange fluxes
      real(r8), pointer :: eres_in(:,:) ! MOSART reservoir inflow  (m3/s for water, kg/s for mud and sand sediment) 
      real(r8), pointer :: eres_out(:,:)! MOSART reservoir outflow  (m3/s for water, kg/s for mud and sand sediment) 
+     !! source/sink fluxes
+     real(r8), pointer :: eres_source(:,:) ! MOSART reservoir source/sink fluxes  (kg/s) positive = incoming, negative = outgoing
+     real(r8), pointer :: eres_source_avg(:,:) ! MOSART reservoir source/sink fluxes  (kg/s) positive = incoming, negative = outgoing
 
      ! reservoirs, lakes on the subnetwork channel
      !! states
@@ -77,6 +81,8 @@ module MOSART_RES_type
      !! exchange fluxes
      real(r8), pointer :: eres_in_t(:,:) ! MOSART reservoir inflow  (m3/s for water, kg/s for mud and sand sediment) 
      real(r8), pointer :: eres_out_t(:,:)! MOSART reservoir outflow  (m3/s for water, kg/s for mud and sand sediment) 
+     !! source/sink fluxes
+     real(r8), pointer :: eres_source_t(:,:) ! MOSART reservoir source/sink fluxes  (kg/s) 
 
     end type TstatusFlux_reservoir
 
@@ -84,11 +90,87 @@ module MOSART_RES_type
     type (Tpara_reservoir),   public :: Tres_para
     type (TstatusFlux_reservoir),   public :: Tres
 
+  public :: MOSART_reservoir_init
+  public :: MOSART_reservoir_bgc_init
   public :: MOSART_reservoir_sed_init
 
 !-----------------------------------------------------------------------
   contains
 !-----------------------------------------------------------------------
+
+  subroutine MOSART_reservoir_bgc_init
+! !DESCRIPTION:
+! initialize MOSART-reservoir variables for all reservoir BGC processes
+! 
+! !USES:
+! !ARGUMENTS:
+!
+! !REVISION HISTORY:
+! Author: Hongyi Li
+!
+
+     ! !DESCRIPTION: initilization of reservoir_bgc module
+     implicit none
+
+    integer :: ier                  ! error code
+    integer :: begr, endr, iunit, nn, n, cnt, nr, nt
+    integer  :: damID
+    character(len=*),parameter :: subname = '(MOSART_reservoir_bgc_init)'
+    character(len=*),parameter :: FORMI = '(2A,2i10)'
+    character(len=*),parameter :: FORMR = '(2A,2g15.7)'
+    type(file_desc_t):: ncid       ! netcdf file
+    type(var_desc_t) :: vardesc    ! netCDF variable description
+    type(io_desc_t)    :: iodesc_dbl ! pio io desc
+
+    begr = rtmCTL%begr
+    endr = rtmCTL%endr  
+
+    if(endr >= begr) then
+        allocate(Tres_para%Tres(begr:endr))
+        Tres_para%Tres = 0._r8
+        do iunit=begr,endr
+            damID = WRMUnit%INVicell(iunit) 
+            if (.not.(damID > ctlSubwWRM%LocalNumDam .OR. damID <= 0 .or. WRMUnit%MeanMthFlow(damID,13) <= 0.01_r8)) then
+                Tres_para%Tres(iunit) = CRTres(WRMUnit%StorCap(damID), WRMUnit%MeanMthFlow(damID,13))
+            else
+                Tres_para%Tres(iunit) = 0._r8
+                Tres_para%Eff_trapping(iunit) = 0._r8
+            end if
+        end do    
+
+        allocate (Tres%wres(begr:endr,nt_rtm))
+        Tres%wres = 0._r8
+
+        allocate (Tres%dwres(begr:endr,nt_rtm))
+        Tres%dwres = 0._r8
+
+        allocate (Tres%eres_in(begr:endr,nt_rtm))
+        Tres%eres_in = 0._r8
+
+        allocate (Tres%eres_out(begr:endr,nt_rtm))
+        Tres%eres_out = 0._r8    
+
+        allocate (Tres%eres_source(begr:endr,nt_rtm))
+        Tres%eres_source = 0._r8    
+
+        allocate (Tres%eres_source_avg(begr:endr,nt_rtm))
+        Tres%eres_source_avg = 0._r8    
+
+        allocate (Tres%wres_t(begr:endr,nt_rtm))
+        Tres%wres_t = 0._r8
+
+        allocate (Tres%dwres_t(begr:endr,nt_rtm))
+        Tres%dwres_t = 0._r8
+
+        allocate (Tres%eres_in_t(begr:endr,nt_rtm))
+        Tres%eres_in_t = 0._r8
+
+        allocate (Tres%eres_out_t(begr:endr,nt_rtm))
+        Tres%eres_out_t = 0._r8    
+
+    end if  
+
+  end subroutine MOSART_reservoir_bgc_init  
 
   subroutine MOSART_reservoir_sed_init
 ! !DESCRIPTION:
@@ -118,35 +200,21 @@ module MOSART_RES_type
     endr = rtmCTL%endr  
 
     if(endr >= begr) then
-        allocate(Tres_para%Tres(begr:endr))
-        Tres_para%Tres = 0._r8
         allocate(Tres_para%Eff_trapping(begr:endr))
         Tres_para%Eff_trapping = 0._r8
         do iunit=begr,endr
             damID = WRMUnit%INVicell(iunit) 
             if (.not.(damID > ctlSubwWRM%LocalNumDam .OR. damID <= 0 .or. WRMUnit%MeanMthFlow(damID,13) <= 0.01_r8)) then
-                Tres_para%Tres(iunit) = CRTres(WRMUnit%StorCap(damID), WRMUnit%MeanMthFlow(damID,13))
+                !Tres_para%Tres(iunit) = CRTres(WRMUnit%StorCap(damID), WRMUnit%MeanMthFlow(damID,13))
                 Tres_para%Eff_trapping(iunit) = CREff_trapping(Tres_para%Tres(iunit))
-                !write(iulog,*) ' Reservoir Trapping ', iunit, WRMUnit%StorCap(damID), WRMUnit%MeanMthFlow(damID,13), Tres_para%Tres(iunit), Tres_para%Eff_trapping(iunit)
             else
-                Tres_para%Tres(iunit) = 0._r8
+                !Tres_para%Tres(iunit) = 0._r8
                 Tres_para%Eff_trapping(iunit) = 0._r8
             end if
         end do    
 
-        allocate (Tres%wres(begr:endr,nt_rtm))
-        Tres%wres = 0._r8
-
-        allocate (Tres%dwres(begr:endr,nt_rtm))
-        Tres%dwres = 0._r8
-
-        allocate (Tres%eres_in(begr:endr,nt_rtm))
-        Tres%eres_in = 0._r8
-
-        allocate (Tres%eres_out(begr:endr,nt_rtm))
-        Tres%eres_out = 0._r8    
-
         if(0>1) then ! comment out temporily, please do not delete. We may need to use this block in future refinement
+													 
             Tres_para%Eff_trapping_t = 0._r8
             do iunit=begr,endr
 			    if(Tres_para%Tres_t(iunit)>0._r8) then
@@ -167,22 +235,107 @@ module MOSART_RES_type
 			end do
         end if
 
+    end if  
+
+  end subroutine MOSART_reservoir_sed_init  
+
+  subroutine MOSART_reservoir_init
+! !DESCRIPTION:
+! initialize MOSART-reservoir variables
+! 
+! !USES:
+! !ARGUMENTS:
+!
+! !REVISION HISTORY:
+! Author: Hongyi Li
+!
+
+     ! !DESCRIPTION: initilization of reservoir module
+     implicit none
+
+    integer :: ier                  ! error code
+    integer :: begr, endr, iunit, nn, n, cnt, nr, nt
+    integer  :: damID
+    character(len=*),parameter :: subname = '(MOSART_reservoir_init)'
+    character(len=*),parameter :: FORMI = '(2A,2i10)'
+    character(len=*),parameter :: FORMR = '(2A,2g15.7)'
+    type(file_desc_t):: ncid       ! netcdf file
+    type(var_desc_t) :: vardesc    ! netCDF variable description
+    type(io_desc_t)    :: iodesc_dbl ! pio io desc
+  
+    begr = rtmCTL%begr
+    endr = rtmCTL%endr  
+
+    if(endr >= begr) then
+        allocate(Tres_para%Tres(begr:endr))
+        Tres_para%Tres = 0._r8
+        allocate(Tres_para%Eff_trapping(begr:endr))
+        Tres_para%Eff_trapping = 0._r8
+        do iunit=begr,endr
+            damID = WRMUnit%INVicell(iunit) 
+            if (.not.(damID > ctlSubwWRM%LocalNumDam .OR. damID <= 0 .or. WRMUnit%MeanMthFlow(damID,13) <= 0.01_r8)) then
+                Tres_para%Tres(iunit) = CRTres(WRMUnit%StorCap(damID), WRMUnit%MeanMthFlow(damID,13))
+                Tres_para%Eff_trapping(iunit) = CREff_trapping(Tres_para%Tres(iunit))
+                !write(iulog,*) ' Reservoir Trapping ', iunit, WRMUnit%StorCap(damID), WRMUnit%MeanMthFlow(damID,13), Tres_para%Tres(iunit), Tres_para%Eff_trapping(iunit)
+            else
+                Tres_para%Tres(iunit) = 0._r8
+                Tres_para%Eff_trapping(iunit) = 0._r8
+            end if
+        end do    
+      
+        allocate (Tres%wres(begr:endr,nt_rtm))
+        Tres%wres = 0._r8
+    
+        allocate (Tres%dwres(begr:endr,nt_rtm))
+        Tres%dwres = 0._r8
+    
+        allocate (Tres%conc(begr:endr,nt_rtm))
+        Tres%conc = 0._r8
+    
+        allocate (Tres%eres_in(begr:endr,nt_rtm))
+        Tres%eres_in = 0._r8
+    
+        allocate (Tres%eres_out(begr:endr,nt_rtm))
+        Tres%eres_out = 0._r8    
+
+if(0>1) then ! comment out temporily, please do not delete
+        allocate(Tres_para%Eff_trapping_t(begr:endr))
+        Tres_para%Eff_trapping_t = 0._r8
+        do iunit=begr,endr
+		    if(Tres_para%Tres_t(iunit)>0._r8) then
+			    Tres_para%Eff_trapping_t(iunit) = CREff_trapping(Tres_para%Tres_t(iunit))
+			else
+			    Tres_para%Eff_trapping_t(iunit) = 0._r8
+			end if
+		end do
+
+        allocate(Tres_para%Eff_trapping_r(begr:endr))
+        Tres_para%Eff_trapping_r = 0._r8
+        do iunit=begr,endr
+		    if(Tres_para%Tres_r(iunit)>0._r8) then
+			    Tres_para%Eff_trapping_r(iunit) = CREff_trapping(Tres_para%Tres_r(iunit))
+			else
+			    Tres_para%Eff_trapping_r(iunit) = 0._r8
+			end if			
+		end do
+end if
+
         allocate (Tres%wres_t(begr:endr,nt_rtm))
         Tres%wres_t = 0._r8
-
+    
         allocate (Tres%dwres_t(begr:endr,nt_rtm))
         Tres%dwres_t = 0._r8
-
+    
         allocate (Tres%eres_in_t(begr:endr,nt_rtm))
         Tres%eres_in_t = 0._r8
-
+    
         allocate (Tres%eres_out_t(begr:endr,nt_rtm))
         Tres%eres_out_t = 0._r8    
 
     end if  
 
-  end subroutine MOSART_reservoir_sed_init  
-
+  end subroutine MOSART_reservoir_init  
+ 
     function CRTres(V_, Q_) result(Tres_)
       ! !DESCRIPTION: calculate large reservoir trapping efficiency based on Eqn (1) and Fig. 2 in Vorosmarty et al. (2003)
       !! Vorosmarty et al, Anthropogenic sediment retention: Major global impact from registered river impoundments, Glob. Planet. Change, 39, 169-190
@@ -209,7 +362,10 @@ module MOSART_RES_type
       real(r8), intent(in) :: Tres_        ! approximated residence time of regulated portion of basin [yrs]
       real(r8)             :: Eff_trapping_        ! trapping efficiency [-]
 
-
+      if(Tres_ < 1.e-6) then
+	      write(iulog,*) ' Tres unreasonble value in CREff_trapping() ', Tres_
+      end if
+	  
       Eff_trapping_ = 1 - 0.05/sqrt(Tres_)
 
       if(Eff_trapping_ < 0._r8) then
@@ -220,6 +376,7 @@ module MOSART_RES_type
     end function CREff_trapping
 
 
+ 
 !
 !
 !EOP

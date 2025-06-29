@@ -16,8 +16,10 @@ module EcosystemDynMod
   use CNStateType         , only : cnstate_type
   use CanopyStateType     , only : canopystate_type
   use SoilStateType       , only : soilstate_type
+  use TemperatureType     , only : temperature_type
+  use WaterstateType      , only : waterstate_type
+  use WaterfluxType       , only : waterflux_type                                               
   use atm2lndType         , only : atm2lnd_type
-  use SoilStateType       , only : soilstate_type
   use CanopyStateType     , only : canopystate_type
   use PhotosynthesisType  , only : photosyns_type
   use CH4Mod              , only : ch4_type
@@ -41,6 +43,7 @@ module EcosystemDynMod
   use AllocationMod      , only : nu_com_nfix, nu_com_phosphatase
   use elm_varctl         , only : nu_com, use_pheno_flux_limiter
   use PhenologyFLuxLimitMod , only : phenology_flux_limiter, InitPhenoFluxLimiter
+  use seq_flds_mod    , only : rof_bgc
   ! for FAN
   use SolarAbsorbedType    , only : solarabs_type
 
@@ -56,7 +59,6 @@ module EcosystemDynMod
   use ColumnDataType , only : col_cs_summary, col_ns_summary, col_ps_summary
   use ColumnDataType , only : col_cf_summary_for_ch4
   use ColumnDataType , only : col_cf_setvalues, col_nf_setvalues, col_pf_setvalues 
-
 
   !
   ! !PUBLIC TYPES:
@@ -120,7 +122,8 @@ contains
 
   subroutine EcosystemDynLeaching(bounds, num_soilc, filter_soilc, &
        num_soilp, filter_soilp, num_pcropp, filter_pcropp, doalb, &
-       cnstate_vars,  &
+       cnstate_vars,  soilhydrology_vars,&
+	   soilstate_vars, sedflux_vars, &
        frictionvel_vars, canopystate_vars )
     !
     ! !DESCRIPTION:
@@ -140,6 +143,8 @@ contains
     use perf_mod             , only: t_startf, t_stopf
     use shr_sys_mod          , only: shr_sys_flush
     use PhosphorusDynamicsMod         , only: PhosphorusBiochemMin_balance
+    !river_bgc
+    use DOCFluxMod           , only: DOCFluxes
 
     !
     ! !ARGUMENTS:
@@ -152,6 +157,9 @@ contains
     integer                  , intent(in)    :: filter_pcropp(:)  ! filter for prognostic crop patches
     logical                  , intent(in)    :: doalb             ! true = surface albedo calculation time step
     type(cnstate_type)       , intent(inout) :: cnstate_vars
+    type(soilhydrology_type) , intent(in)    :: soilhydrology_vars
+    type(soilstate_type)     , intent(in)    :: soilstate_vars
+    type(sedflux_type)       , intent(in)    :: sedflux_vars
     type(frictionvel_type)   , intent(in)    :: frictionvel_vars
     type(canopystate_type)   , intent(inout) :: canopystate_vars
 
@@ -218,6 +226,14 @@ contains
     call PhosphorusStateUpdate3(bounds,num_soilc, filter_soilc, num_soilp, filter_soilp, &
         cnstate_vars, dt)
     call t_stop_lnd(event)
+
+    if(rof_bgc) then
+       event = 'DOC_leaching'
+       call t_start_lnd(event)
+       call DOCFluxes(bounds, num_soilc, filter_soilc, soilhydrology_vars, &
+                       soilstate_vars, sedflux_vars, dt)
+       call t_stop_lnd(event)
+	end if
 
     event = 'CNPsum'
     call t_start_lnd(event)

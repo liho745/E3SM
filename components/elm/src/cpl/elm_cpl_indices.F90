@@ -8,6 +8,7 @@ module elm_cpl_indices
   ! !USES:
   
   use shr_sys_mod,    only : shr_sys_abort
+  use seq_flds_mod,   only : rof_bgc
   implicit none
 
   SAVE
@@ -120,6 +121,12 @@ module elm_cpl_indices
   integer, public ::index_x2l_Flrr_deficit    ! rtm->lnd supply deficit
   integer, public ::index_x2l_Sr_h2orof       ! rtm->lnd floodplain inundation volume
   integer, public ::index_x2l_Sr_frac_h2orof  ! rtm->lnd floodplain inundation fraction
+  
+  !river_bgc
+  integer, public ::index_l2x_Flrl_rofsur_DOC ! lnd->rof DOC water flux in liquid surface runoff
+  integer, public ::index_l2x_Flrl_rofsur_POC ! lnd->rof POC water flux in liquid surface runoff
+  integer, public ::index_l2x_Flrl_rofsub_DOC ! lnd->rof DOC water flux in liquid subsurface runoff
+  integer, public ::index_l2x_Flrl_rofsub_POC ! lnd->rof POC water flux in liquid subsurface runoff
 
   ! In the following, index 0 is bare land, other indices are glc elevation classes
   integer, public ::index_x2l_Sg_frac(0:glc_nec_max)   = 0   ! Fraction of glacier from glc model
@@ -189,9 +196,16 @@ contains
     index_l2x_Flrl_Tqsur    = mct_avect_indexra(l2x,'Flrl_Tqsur')
     index_l2x_Flrl_Tqsub    = mct_avect_indexra(l2x,'Flrl_Tqsub')
     index_l2x_coszen_str    = mct_avect_indexra(l2x,'coszen_str')
-	if(rof_sed) then
+    if(rof_sed) then
       index_l2x_Flrl_rofmud   = mct_avect_indexra(l2x,'Flrl_rofmud')
-	end if
+    end if    
+    !river_bgc
+    if(rof_bgc) then
+      index_l2x_Flrl_rofsur_DOC = mct_avect_indexra(l2x,'Flrl_rofsur_DOC') ! lnd->rof DOC water flux in liquid surface runoff
+      index_l2x_Flrl_rofsub_DOC = mct_avect_indexra(l2x,'Flrl_rofsub_DOC') ! lnd->rof DOC water flux in liquid subsurface runoff
+      index_l2x_Flrl_rofsur_POC = mct_avect_indexra(l2x,'Flrl_rofsur_POC') ! lnd->rof POC water flux in liquid surface runoff
+      index_l2x_Flrl_rofsub_POC = mct_avect_indexra(l2x,'Flrl_rofsub_POC') ! lnd->rof POC water flux in liquid subsurface runoff
+    end if
     if (lnd_rof_two_way) then
       index_l2x_Flrl_inundinf = mct_avect_indexra(l2x,'Flrl_inundinf')
     endif

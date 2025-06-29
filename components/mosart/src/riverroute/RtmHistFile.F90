@@ -31,7 +31,7 @@ module RtmHistFile
 !
   integer , public, parameter :: max_tapes  = 3     ! max number of history tapes
   integer , public, parameter :: max_flds   = 1500  ! max number of history fields
-  integer , public, parameter :: max_namlen = 32    ! maximum number of characters for field name
+  integer , public, parameter :: max_namlen = 36    ! maximum number of characters for field name
 !
 ! Counters
 !

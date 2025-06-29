@@ -11,7 +11,7 @@ module lnd_import_export
   use TopounitDataType , only: top_as, top_af  ! atmospheric state and flux variables  
   use elm_cpl_indices
   use mct_mod
-  use seq_flds_mod    , only : rof_sed
+  use seq_flds_mod    , only : rof_sed, rof_bgc
   !
   implicit none
   !===============================================================================
@@ -1454,9 +1454,15 @@ contains
        l2x(index_l2x_Flrl_Tqsur,i)  = lnd2atm_vars%Tqsur_grc(g)
        l2x(index_l2x_Flrl_Tqsub,i)  = lnd2atm_vars%Tqsub_grc(g)
        l2x(index_l2x_coszen_str,i)  = lnd2atm_vars%coszen_str(g)
-	   if (rof_sed) then
+       if (rof_sed) then
            l2x(index_l2x_Flrl_rofmud,i) = lnd2atm_vars%qflx_rofmud_grc(g)
-	   end if
+       end if       
+       if (rof_bgc) then   
+           l2x(index_l2x_Flrl_rofsur_DOC,i) = lnd2atm_vars%qflx_rofliq_qsur_doc_grc(g)
+           l2x(index_l2x_Flrl_rofsub_DOC,i) = lnd2atm_vars%qflx_rofliq_qsub_doc_grc(g)
+           l2x(index_l2x_Flrl_rofsur_POC,i) = lnd2atm_vars%qflx_rofliq_qsur_poc_grc(g)
+           l2x(index_l2x_Flrl_rofsub_POC,i) = 0.0_r8 !lnd2atm_vars%qflx_rofliq_qsub_poc_grc(g)
+       end if
        l2x(index_l2x_Flrl_wslake,i) = lnd2atm_vars%wslake_grc(g)/dtime
 
        if (index_l2x_Flrl_inundinf /= 0) then

@@ -102,7 +102,8 @@ MODULE MOSART_stra_mod
 		real(r8) :: mixvol1,mixvol2,sumvol,num,dem 								! used in convective mixing
 		real(r8) :: ta,tb,tab,dv_nt(nlayers),dd_za,dd_zb,d_va,dv_oua,delta_a	! used in layer merging/split
 		real(r8) :: dv_inb,dv_ina,dv_oub,dv_ouab,dv_inab,dd_zab,d_vab,d_vb		! used in layer merging/split	
-		real(r8) :: ddz_min,ddz_max      										! (nd) Minimum and Maximum layer thickness limit for merge/split
+		real(r8) :: ddz_min,ddz_max      										! Minimum and Maximum layer thickness limit for merge/split
+		real(r8) :: sum_div, sum_weight      								    ! dividend and total weights used in averaging
 
 !**************************************************************************************************************************************************
 		damID = WRMUnit%INVicell(iunit) 
@@ -111,6 +112,7 @@ MODULE MOSART_stra_mod
 			if(WRMUnit%d_resrv(damID) <= 10._r8 .or. WRMUnit%d_ns(damID) < 1 .or. WRMUnit%Depth(damID) <= 0.0_r8 .or. WRMUnit%Height(damID) <= 0.0_r8 .or. WRMUnit%geometry(damID) < 1.0_r8) then 
 				THeat%Tr(iunit) = THeat%Tr(iunit)
 				WRMUnit%resrv_surf(iunit)= THeat%Tr(iunit)
+				WRMUnit%resrv_Tavg(iunit)= THeat%Tr(iunit)
 				return
 			end if
 			
@@ -473,7 +475,6 @@ MODULE MOSART_stra_mod
 					end if
 				end do	
 				
-				
 			!	Solve for temperature
 				call solve(a,b,c,r,damID,WRMUnit%d_ns(damID))
 				
@@ -615,8 +616,17 @@ MODULE MOSART_stra_mod
 				if (t_out < 273.15_r8) t_out = 273.15_r8 
 			end if 	
 			
-			WRMUnit%resrv_surf(iunit)= WRMUnit%temp_resrv(damID,WRMUnit%d_ns(damID))
+			WRMUnit%resrv_surf(iunit) = WRMUnit%temp_resrv(damID,WRMUnit%d_ns(damID))
 			THeat%Tr(iunit)= t_out
+			! calculating average temperature in the reservoir
+			WRMUnit%resrv_Tavg(iunit) = WRMUnit%temp_resrv(damID,WRMUnit%d_ns(damID))
+			sum_div = WRMUnit%temp_resrv(damID,WRMUnit%d_ns(damID))*WRMUnit%d_v(damID,WRMUnit%d_ns(damID))*rho_z(WRMUnit%d_ns(damID))
+			sum_weight = WRMUnit%d_v(damID,WRMUnit%d_ns(damID))*rho_z(WRMUnit%d_ns(damID))
+			do j = 1,WRMUnit%d_ns(damID)-1   
+				sum_div = sum_div + WRMUnit%temp_resrv(damID,j)*WRMUnit%d_v(damID,j)*rho_z(j)
+				sum_weight = sum_weight + WRMUnit%d_v(damID,j)*rho_z(j)
+			end do
+			WRMUnit%resrv_Tavg(iunit) = sum_div / sum_weight
 					
 		end if ! stratification
     end subroutine stratification

@@ -11,7 +11,7 @@ module RtmHistFlds
   use shr_kind_mod   , only: r8 => shr_kind_r8
   use RunoffMod      , only : rtmCTL
   use RtmHistFile    , only : RtmHistAddfld, RtmHistPrintflds
-  use RtmVar         , only : wrmflag, inundflag, sediflag, heatflag, rstraflag, use_ocn_rof_two_way
+  use RtmVar         , only : wrmflag, inundflag, sediflag, heatflag, river_bgc, rstraflag, use_ocn_rof_two_way
 
   use WRM_type_mod  , only : ctlSubwWRM, WRMUnit, StorWater
 
@@ -101,6 +101,14 @@ contains
     call RtmHistAddfld (fname='STORAGE'//'_'//trim(rtm_tracers(2)), units='m3',  &
          avgflag='A', long_name='MOSART storage: '//trim(rtm_tracers(2)), &
          ptr_rof=rtmCTL%volr_nt2, default='active')
+
+    call RtmHistAddfld (fname='DISCHARGE_FROM_TRIBUTARY'//'_'//trim(rtm_tracers(1)), units='m3/s',  &
+         avgflag='A', long_name='MOSART river flow in tributaries: '//trim(rtm_tracers(1)), &
+         ptr_rof=rtmCTL%QTrib_nt1, default='active')
+
+    call RtmHistAddfld (fname='DISCHARGE_FROM_TRIBUTARY'//'_'//trim(rtm_tracers(2)), units='m3/s',  &
+         avgflag='A', long_name='MOSART river flow in tributaries: '//trim(rtm_tracers(2)), &
+         ptr_rof=rtmCTL%QTrib_nt2, default='active')
 
     call RtmHistAddfld (fname='DVOLRDT_LND'//'_'//trim(rtm_tracers(1)), units='m3/s',  &
          avgflag='A', long_name='MOSART land change in storage: '//trim(rtm_tracers(1)), &
@@ -244,6 +252,154 @@ contains
            ptr_rof=rtmCTL%templand_Tchanr_nt1)         
     end if     
 
+    if ( river_bgc ) then
+        
+		call RtmHistAddfld (fname='RIVER_DISCHARGE_OVER_LAND'//'_'//trim(rtm_tracers(5)), units='kgC/s',  &
+             avgflag='A', long_name='MOSART river basin flow: '//trim(rtm_tracers(5)), &
+             ptr_rof=rtmCTL%runofflnd_nt5, default='active')
+    
+        call RtmHistAddfld (fname='RIVER_DISCHARGE_TO_OCEAN'//'_'//trim(rtm_tracers(5)), units='kgC/s',  &
+             avgflag='A', long_name='MOSART river discharge into ocean: '//trim(rtm_tracers(5)), &
+             ptr_rof=rtmCTL%runoffocn_nt5, default='active')
+    
+        call RtmHistAddfld (fname='TOTAL_DISCHARGE_TO_OCEAN'//'_'//trim(rtm_tracers(5)), units='kgC/s', &
+             avgflag='A', long_name='MOSART total discharge into ocean: '//trim(rtm_tracers(5)), &
+             ptr_rof=rtmCTL%runofftot_nt5, default='active')
+    
+        call RtmHistAddfld (fname='DIRECT_DISCHARGE_TO_OCEAN'//'_'//trim(rtm_tracers(5)), units='kgC/s', &
+             avgflag='A', long_name='MOSART direct discharge into ocean: '//trim(rtm_tracers(5)), &
+             ptr_rof=rtmCTL%runoffdir_nt5, default='active')
+    
+        call RtmHistAddfld (fname='STORAGE'//'_'//trim(rtm_tracers(5)), units='kgC',  &
+             avgflag='A', long_name='MOSART storage: '//trim(rtm_tracers(5)), &
+             ptr_rof=rtmCTL%volr_nt5, default='active')
+    
+        call RtmHistAddfld (fname='DISCHARGE_FROM_TRIBUTARY'//'_'//trim(rtm_tracers(5)), units='kgC/s',  &
+             avgflag='A', long_name='MOSART river flow in tributaries: '//trim(rtm_tracers(5)), &
+             ptr_rof=rtmCTL%QTrib_nt5, default='active')
+
+        call RtmHistAddfld (fname='DVOLRDT_LND'//'_'//trim(rtm_tracers(5)), units='kgC/s',  &
+             avgflag='A', long_name='MOSART land change in storage: '//trim(rtm_tracers(5)), &
+             ptr_rof=rtmCTL%dvolrdtlnd_nt5, default='active')
+    
+        call RtmHistAddfld (fname='DVOLRDT_OCN'//'_'//trim(rtm_tracers(5)), units='kgC/s',  &
+             avgflag='A', long_name='MOSART ocean change of storage: '//trim(rtm_tracers(5)), &
+             ptr_rof=rtmCTL%dvolrdtocn_nt5, default='active')
+
+        call RtmHistAddfld (fname='QSUR'//'_'//trim(rtm_tracers(5)), units='kg/s',  &
+             avgflag='A', long_name='MOSART input surface runoff: '//trim(rtm_tracers(5)), &
+             ptr_rof=rtmCTL%qsur_nt5, default='active')
+    
+        call RtmHistAddfld (fname='QSUB'//'_'//trim(rtm_tracers(5)), units='kg/s',  &
+             avgflag='A', long_name='MOSART input subsurface runoff: '//trim(rtm_tracers(5)), &
+             ptr_rof=rtmCTL%qsub_nt5, default='active')
+			 
+        call RtmHistAddfld (fname='RIVER_DISCHARGE_OVER_LAND'//'_'//trim(rtm_tracers(6)), units='kgC/s',  &
+             avgflag='A', long_name='MOSART river basin flow: '//trim(rtm_tracers(6)), &
+             ptr_rof=rtmCTL%runofflnd_nt6, default='active')
+    
+        call RtmHistAddfld (fname='RIVER_DISCHARGE_TO_OCEAN'//'_'//trim(rtm_tracers(6)), units='kgC/s',  &
+             avgflag='A', long_name='MOSART river discharge into ocean: '//trim(rtm_tracers(6)), &
+             ptr_rof=rtmCTL%runoffocn_nt6, default='active')
+    
+        call RtmHistAddfld (fname='TOTAL_DISCHARGE_TO_OCEAN'//'_'//trim(rtm_tracers(6)), units='kgC/s', &
+             avgflag='A', long_name='MOSART total discharge into ocean: '//trim(rtm_tracers(6)), &
+             ptr_rof=rtmCTL%runofftot_nt6, default='active')
+    
+        call RtmHistAddfld (fname='DIRECT_DISCHARGE_TO_OCEAN'//'_'//trim(rtm_tracers(6)), units='kgC/s', &
+             avgflag='A', long_name='MOSART direct discharge into ocean: '//trim(rtm_tracers(6)), &
+             ptr_rof=rtmCTL%runoffdir_nt6, default='active')
+    
+        call RtmHistAddfld (fname='STORAGE'//'_'//trim(rtm_tracers(6)), units='kgC',  &
+             avgflag='A', long_name='MOSART storage: '//trim(rtm_tracers(6)), &
+             ptr_rof=rtmCTL%volr_nt6, default='active')
+    
+        call RtmHistAddfld (fname='DISCHARGE_FROM_TRIBUTARY'//'_'//trim(rtm_tracers(6)), units='kgC/s',  &
+             avgflag='A', long_name='MOSART river flow in tributaries: '//trim(rtm_tracers(6)), &
+             ptr_rof=rtmCTL%QTrib_nt6, default='active') 
+
+        call RtmHistAddfld (fname='DVOLRDT_LND'//'_'//trim(rtm_tracers(6)), units='kgC/s',  &
+             avgflag='A', long_name='MOSART land change in storage: '//trim(rtm_tracers(6)), &
+             ptr_rof=rtmCTL%dvolrdtlnd_nt6, default='active')
+    
+        call RtmHistAddfld (fname='DVOLRDT_OCN'//'_'//trim(rtm_tracers(6)), units='kgC/s',  &
+             avgflag='A', long_name='MOSART ocean change of storage: '//trim(rtm_tracers(6)), &
+             ptr_rof=rtmCTL%dvolrdtocn_nt6, default='active')
+			 
+			 
+        call RtmHistAddfld (fname='RIVER_DISCHARGE_OVER_LAND'//'_'//trim(rtm_tracers(7)), units='kgC/s',  &
+             avgflag='A', long_name='MOSART river basin flow: '//trim(rtm_tracers(7)), &
+             ptr_rof=rtmCTL%runofflnd_nt7, default='active')
+    
+        call RtmHistAddfld (fname='RIVER_DISCHARGE_TO_OCEAN'//'_'//trim(rtm_tracers(7)), units='kgC/s',  &
+             avgflag='A', long_name='MOSART river discharge into ocean: '//trim(rtm_tracers(7)), &
+             ptr_rof=rtmCTL%runoffocn_nt7, default='active')
+    
+        call RtmHistAddfld (fname='TOTAL_DISCHARGE_TO_OCEAN'//'_'//trim(rtm_tracers(7)), units='kgC/s', &
+             avgflag='A', long_name='MOSART total discharge into ocean: '//trim(rtm_tracers(7)), &
+             ptr_rof=rtmCTL%runofftot_nt7, default='active')
+    
+        call RtmHistAddfld (fname='DIRECT_DISCHARGE_TO_OCEAN'//'_'//trim(rtm_tracers(7)), units='kgC/s', &
+             avgflag='A', long_name='MOSART direct discharge into ocean: '//trim(rtm_tracers(7)), &
+             ptr_rof=rtmCTL%runoffdir_nt7, default='active')
+    
+        call RtmHistAddfld (fname='STORAGE'//'_'//trim(rtm_tracers(7)), units='kgC',  &
+             avgflag='A', long_name='MOSART storage: '//trim(rtm_tracers(7)), &
+             ptr_rof=rtmCTL%volr_nt7, default='active')
+    
+        call RtmHistAddfld (fname='DISCHARGE_FROM_TRIBUTARY'//'_'//trim(rtm_tracers(7)), units='kgC/s',  &
+             avgflag='A', long_name='MOSART river flow in tributaries: '//trim(rtm_tracers(7)), &
+             ptr_rof=rtmCTL%QTrib_nt7, default='active')
+
+        call RtmHistAddfld (fname='DVOLRDT_LND'//'_'//trim(rtm_tracers(7)), units='kgC/s',  &
+             avgflag='A', long_name='MOSART land change in storage: '//trim(rtm_tracers(7)), &
+             ptr_rof=rtmCTL%dvolrdtlnd_nt7, default='active')
+    
+        call RtmHistAddfld (fname='DVOLRDT_OCN'//'_'//trim(rtm_tracers(7)), units='kgC/s',  &
+             avgflag='A', long_name='MOSART ocean change of storage: '//trim(rtm_tracers(7)), &
+             ptr_rof=rtmCTL%dvolrdtocn_nt7, default='active')
+
+        call RtmHistAddfld (fname='QSUR'//'_'//trim(rtm_tracers(7)), units='kg/s',  &
+             avgflag='A', long_name='MOSART input surface runoff: '//trim(rtm_tracers(7)), &
+             ptr_rof=rtmCTL%qsur_nt7, default='active')
+    
+        call RtmHistAddfld (fname='QSUB'//'_'//trim(rtm_tracers(7)), units='kg/s',  &
+             avgflag='A', long_name='MOSART input subsurface runoff: '//trim(rtm_tracers(7)), &
+             ptr_rof=rtmCTL%qsub_nt7, default='active')
+			 
+        call RtmHistAddfld (fname='RIVER_DISCHARGE_OVER_LAND'//'_'//trim(rtm_tracers(8)), units='kgC/s',  &
+             avgflag='A', long_name='MOSART river basin flow: '//trim(rtm_tracers(8)), &
+             ptr_rof=rtmCTL%runofflnd_nt8, default='active')
+    
+        call RtmHistAddfld (fname='RIVER_DISCHARGE_TO_OCEAN'//'_'//trim(rtm_tracers(8)), units='kgC/s',  &
+             avgflag='A', long_name='MOSART river discharge into ocean: '//trim(rtm_tracers(8)), &
+             ptr_rof=rtmCTL%runoffocn_nt8, default='active')
+    
+        call RtmHistAddfld (fname='TOTAL_DISCHARGE_TO_OCEAN'//'_'//trim(rtm_tracers(8)), units='kgC/s', &
+             avgflag='A', long_name='MOSART total discharge into ocean: '//trim(rtm_tracers(8)), &
+             ptr_rof=rtmCTL%runofftot_nt8, default='active')
+    
+        call RtmHistAddfld (fname='DIRECT_DISCHARGE_TO_OCEAN'//'_'//trim(rtm_tracers(8)), units='kgC/s', &
+             avgflag='A', long_name='MOSART direct discharge into ocean: '//trim(rtm_tracers(8)), &
+             ptr_rof=rtmCTL%runoffdir_nt8, default='active')
+    
+        call RtmHistAddfld (fname='STORAGE'//'_'//trim(rtm_tracers(8)), units='kgC',  &
+             avgflag='A', long_name='MOSART storage: '//trim(rtm_tracers(8)), &
+             ptr_rof=rtmCTL%volr_nt8, default='active')
+    
+        call RtmHistAddfld (fname='DISCHARGE_FROM_TRIBUTARY'//'_'//trim(rtm_tracers(8)), units='kgC/s',  &
+             avgflag='A', long_name='MOSART river flow in tributaries: '//trim(rtm_tracers(8)), &
+             ptr_rof=rtmCTL%QTrib_nt8, default='active')
+
+        call RtmHistAddfld (fname='DVOLRDT_LND'//'_'//trim(rtm_tracers(8)), units='kgC/s',  &
+             avgflag='A', long_name='MOSART land change in storage: '//trim(rtm_tracers(8)), &
+             ptr_rof=rtmCTL%dvolrdtlnd_nt8, default='active')
+    
+        call RtmHistAddfld (fname='DVOLRDT_OCN'//'_'//trim(rtm_tracers(8)), units='kgC/s',  &
+             avgflag='A', long_name='MOSART ocean change of storage: '//trim(rtm_tracers(8)), &
+             ptr_rof=rtmCTL%dvolrdtocn_nt8, default='active')
+    end if	
+
     if (wrmflag .and. heatflag .and. rstraflag) then
       call RtmHistAddfld (fname='RSRV_SURF', units='Kelvin',  &
            avgflag='A', long_name='Reservoir surface temperature', &
@@ -304,6 +460,9 @@ contains
     rtmCTL%volr_nt1(:)       = rtmCTL%volr(:,1)
     rtmCTL%volr_nt2(:)       = rtmCTL%volr(:,2)
 
+    rtmCTL%QTrib_nt1(:)      = rtmCTL%QTrib(:,1)
+    rtmCTL%QTrib_nt2(:)      = rtmCTL%QTrib(:,2)
+
     rtmCTL%qsub_nt1(:)       = rtmCTL%qsub(:,1)
     rtmCTL%qsub_nt2(:)       = rtmCTL%qsub(:,2)
 
@@ -349,7 +508,50 @@ contains
       rtmCTL%templand_Tchanr_nt1(:) = rtmCTL%templand_Tchanr(:)
       rtmCTL%templand_Tchanr_nt2(:) = rtmCTL%templand_Tchanr(:)
     end if
-    
+
+   if ( river_bgc ) then
+		rtmCTL%runofflnd_nt5(:)  = rtmCTL%runofflnd(:,5)
+        rtmCTL%runoffocn_nt5(:)  = rtmCTL%runoffocn(:,5)
+        rtmCTL%runofftot_nt5(:)  = rtmCTL%runofftot(:,5)
+        rtmCTL%runoffdir_nt5(:)  = rtmCTL%direct(:,5)
+        rtmCTL%dvolrdtlnd_nt5(:) = rtmCTL%dvolrdtlnd(:,5)
+        rtmCTL%dvolrdtocn_nt5(:) = rtmCTL%dvolrdtocn(:,5)
+        rtmCTL%volr_nt5(:)       = rtmCTL%volr(:,5)
+        rtmCTL%QTrib_nt5(:)      = rtmCTL%QTrib(:,5)
+        rtmCTL%qsur_nt5(:)       = rtmCTL%qsur(:,5)
+        rtmCTL%qsub_nt5(:)       = rtmCTL%qsub(:,5)
+	
+        rtmCTL%runofflnd_nt6(:)  = rtmCTL%runofflnd(:,6)
+        rtmCTL%runoffocn_nt6(:)  = rtmCTL%runoffocn(:,6)
+        rtmCTL%runofftot_nt6(:)  = rtmCTL%runofftot(:,6)
+        rtmCTL%runoffdir_nt6(:)  = rtmCTL%direct(:,6)
+        rtmCTL%dvolrdtlnd_nt6(:) = rtmCTL%dvolrdtlnd(:,6)
+        rtmCTL%dvolrdtocn_nt6(:) = rtmCTL%dvolrdtocn(:,6)
+        rtmCTL%volr_nt6(:)       = rtmCTL%volr(:,6)
+        rtmCTL%QTrib_nt6(:)      = rtmCTL%QTrib(:,6)
+		
+		rtmCTL%runofflnd_nt7(:)  = rtmCTL%runofflnd(:,7)
+        rtmCTL%runoffocn_nt7(:)  = rtmCTL%runoffocn(:,7)
+        rtmCTL%runofftot_nt7(:)  = rtmCTL%runofftot(:,7)
+        rtmCTL%runoffdir_nt7(:)  = rtmCTL%direct(:,7)
+        rtmCTL%dvolrdtlnd_nt7(:) = rtmCTL%dvolrdtlnd(:,7)
+        rtmCTL%dvolrdtocn_nt7(:) = rtmCTL%dvolrdtocn(:,7)
+        rtmCTL%volr_nt7(:)       = rtmCTL%volr(:,7)
+        rtmCTL%QTrib_nt7(:)      = rtmCTL%QTrib(:,7)
+        rtmCTL%qsur_nt7(:)       = rtmCTL%qsur(:,7)
+        rtmCTL%qsub_nt7(:)       = rtmCTL%qsub(:,7)
+	
+        rtmCTL%runofflnd_nt8(:)  = rtmCTL%runofflnd(:,8)
+        rtmCTL%runoffocn_nt8(:)  = rtmCTL%runoffocn(:,8)
+        rtmCTL%runofftot_nt8(:)  = rtmCTL%runofftot(:,8)
+        rtmCTL%runoffdir_nt8(:)  = rtmCTL%direct(:,8)
+        rtmCTL%dvolrdtlnd_nt8(:) = rtmCTL%dvolrdtlnd(:,8)
+        rtmCTL%dvolrdtocn_nt8(:) = rtmCTL%dvolrdtocn(:,8)
+        rtmCTL%volr_nt8(:)       = rtmCTL%volr(:,8)
+        rtmCTL%QTrib_nt8(:)      = rtmCTL%QTrib(:,8)
+		
+	end if
+     
   end subroutine RtmHistFldsSet
 
 

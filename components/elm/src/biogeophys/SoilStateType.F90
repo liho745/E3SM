@@ -20,6 +20,7 @@ module SoilStateType
   use elm_varctl      , only : use_cn, use_lch4,use_dynroot, use_fates
   use elm_varctl      , only : use_erosion
   use elm_varctl      , only : use_var_soil_thick
+  use seq_flds_mod    , only : rof_bgc
   use elm_varctl      , only : iulog, fsurdat, hist_wrtch4diag
   use CH4varcon       , only : allowlakeprod
   use LandunitType    , only : lun_pp                
@@ -45,6 +46,7 @@ module SoilStateType
      real(r8), pointer :: cellclay_col         (:,:) ! clay value for gridcell containing column (1:nlevsoi)
      real(r8), pointer :: cellgrvl_col         (:,:) ! gravel value for gridcell containing column (1:nlevsoi)
      real(r8), pointer :: bd_col               (:,:) ! col bulk density of dry soil material [kg/m^3] (CN)
+     real(r8), pointer :: Pr_col               (:)   ! col SOC->DOC transformation coefficient  [m^3 soil / m^3 water]
 
      ! hydraulic properties
      real(r8), pointer :: hksat_col            (:,:) ! col hydraulic conductivity at saturation (mm H2O /s)
@@ -149,6 +151,7 @@ contains
     allocate(this%cellclay_col         (begc:endc,nlevgrnd))            ; this%cellclay_col         (:,:) = spval
     allocate(this%cellgrvl_col         (begc:endc,nlevgrnd))            ; this%cellgrvl_col         (:,:) = spval
     allocate(this%bd_col               (begc:endc,nlevgrnd))            ; this%bd_col               (:,:) = spval
+    allocate(this%Pr_col               (begc:endc))                     ; this%Pr_col               (:)   = spval
 
     allocate(this%hksat_col            (begc_all:endc_all,nlevgrnd))    ; this%hksat_col            (:,:) = spval
     allocate(this%hksat_min_col        (begc:endc,nlevgrnd))            ; this%hksat_min_col        (:,:) = spval
@@ -370,6 +373,7 @@ contains
     real(r8) ,pointer  :: zisoifl (:)                   ! Output: [real(r8) (:)]  original soil interface depth 
     real(r8) ,pointer  :: dzsoifl (:)                   ! Output: [real(r8) (:)]  original soil thickness 
     real(r8) ,pointer  :: gti (:,:)                     ! read in - fmax 
+    real(r8) ,pointer  :: Pr_tmp (:)                    ! read in - Pr
     real(r8) ,pointer  :: sand3d (:,:,:)                ! read in - soil texture: percent sand (needs to be a pointer for use in ncdio)
     real(r8) ,pointer  :: clay3d (:,:,:)                ! read in - soil texture: percent clay (needs to be a pointer for use in ncdio)
     real(r8) ,pointer  :: grvl3d (:,:,:)                ! read in - soil texture: percent gravel (needs to be a pointer for use in ncdio)
@@ -517,6 +521,20 @@ contains
     end do
     deallocate(gti)
 
+    if(rof_bgc) then
+        ! read Pr
+        allocate(Pr_tmp(bounds%begg:bounds%endg))
+        call ncd_io(ncid=ncid, varname='Pr', flag='read', data=Pr_tmp, dim1name=grlnd, readvar=readvar)
+        if (.not. readvar) then
+           call endrun(msg=' ERROR: Pr NOT on surfdata file'//errMsg(__FILE__, __LINE__))
+        end if
+        do c = bounds%begc, bounds%endc
+           g = col_pp%gridcell(c)
+           this%Pr_col(c) = Pr_tmp(g)
+        end do
+        deallocate(Pr_tmp)
+    end if    
+
     ! Read tillage and lithology
     if (use_erosion) then
        allocate(tillage_in(bounds%begg:bounds%endg,max_topounits))
@@ -653,7 +671,7 @@ contains
 
           do lev = 1,nlevgrnd
              ! Number of soil layers in hydrologically active columns = NLEV2BED
-	     nlevbed = col_pp%nlevbed(c)
+         nlevbed = col_pp%nlevbed(c)
              if ( more_vertlayers )then ! duplicate clay and sand values from last soil layer
 
                 if (lev .eq. 1) then

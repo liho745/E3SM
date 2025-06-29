@@ -47,6 +47,7 @@ module seq_diag_mct
   use seq_infodata_mod, only : seq_infodata_type, seq_infodata_getdata
   use shr_reprosum_mod, only : shr_reprosum_calc
   use seq_diagBGC_mct,  only : seq_diagBGC_preprint_mct, seq_diagBGC_print_mct
+  use seq_flds_mod   ,  only : rof_bgc
 
   implicit none
   save
@@ -86,7 +87,7 @@ module seq_diag_mct
   real(r8),parameter :: SFLXtoWFLX = & ! water flux implied by salt flux
                                 ! WFLX (kg/m^2s) = -SFLX (kg/m^2s)
                                 !                  / ocn_ref_sal (psu) (34.7g/kg)
-                                !		   / 1.e-3 kg/g
+                                !           / 1.e-3 kg/g
        -1._r8/(shr_const_ocn_ref_sal*1.e-3_r8)
 
 
@@ -261,7 +262,14 @@ module seq_diag_mct
   integer :: index_l2x_Flrl_rofi
   integer :: index_l2x_Flrl_irrig
   integer :: index_l2x_Flrl_wslake
-
+  
+  !river_bgc
+  integer :: index_l2x_Flrl_rofsur_DOC
+  integer :: index_l2x_Flrl_rofsur_POC
+  integer :: index_l2x_Flrl_rofsub_DOC
+  integer :: index_l2x_Flrl_rofsub_POC
+  integer :: index_l2x_Flrl_rofi_DOC
+  integer :: index_l2x_Flrl_rofi_POC
 
   integer :: index_x2l_Faxa_lwdn
   integer :: index_x2l_Faxa_rainc
@@ -276,6 +284,12 @@ module seq_diag_mct
   integer :: index_r2x_Firr_rofi
   integer :: index_r2x_Flrr_flood
   integer :: index_r2x_Flrr_supply
+  integer :: index_r2x_Forr_rofl_DOC
+  integer :: index_r2x_Forr_rofi_DOC
+  integer :: index_r2x_Flrr_flood_DOC
+  integer :: index_r2x_Forr_rofl_POC 
+  integer :: index_r2x_Forr_rofi_POC 
+  integer :: index_r2x_Flrr_flood_POC
 
   integer :: index_x2r_Flrl_rofsur
   integer :: index_x2r_Flrl_rofgwl
@@ -283,6 +297,14 @@ module seq_diag_mct
   integer :: index_x2r_Flrl_rofdto
   integer :: index_x2r_Flrl_rofi
   integer :: index_x2r_Flrl_irrig
+  
+  !river_bgc
+  integer :: index_x2r_Flrl_rofsur_DOC
+  integer :: index_x2r_Flrl_rofsur_POC
+  integer :: index_x2r_Flrl_rofsub_DOC
+  integer :: index_x2r_Flrl_rofsub_POC
+  integer :: index_x2r_Flrl_rofi_DOC
+  integer :: index_x2r_Flrl_rofi_POC
 
   integer :: index_o2x_Faoo_h2otemp
   integer :: index_o2x_Fioo_frazil
@@ -902,7 +924,16 @@ contains
           index_l2x_Flrl_rofi   = mct_aVect_indexRA(l2x_l,'Flrl_rofi')
           index_l2x_Flrl_irrig  = mct_aVect_indexRA(l2x_l,'Flrl_irrig', perrWith='quiet')
           index_l2x_Flrl_wslake   = mct_aVect_indexRA(l2x_l,'Flrl_wslake')
-
+          !river_bgc
+          if (rof_bgc) then
+             index_l2x_Flrl_rofsur_DOC = mct_aVect_indexRA(l2x_l,'Flrl_rofsur_DOC') 
+             index_l2x_Flrl_rofsur_POC = mct_aVect_indexRA(l2x_l,'Flrl_rofsur_POC')
+             index_l2x_Flrl_rofsub_DOC = mct_aVect_indexRA(l2x_l,'Flrl_rofsub_DOC')
+             index_l2x_Flrl_rofsub_POC = mct_aVect_indexRA(l2x_l,'Flrl_rofsub_POC')
+             index_l2x_Flrl_rofi_DOC   = mct_aVect_indexRA(l2x_l,'Flrl_rofi_DOC')
+             index_l2x_Flrl_rofi_POC   = mct_aVect_indexRA(l2x_l,'Flrl_rofi_POC')
+          end if
+          
           index_l2x_Fall_evap_16O    = mct_aVect_indexRA(l2x_l,'Fall_evap_16O',perrWith='quiet')
           if ( index_l2x_Fall_evap_16O /= 0 ) flds_wiso_lnd = .true.
           if ( flds_wiso_lnd )then
@@ -1114,7 +1145,16 @@ contains
        index_x2r_Flrl_rofdto = mct_aVect_indexRA(x2r_r,'Flrl_rofdto')
        index_x2r_Flrl_irrig  = mct_aVect_indexRA(x2r_r,'Flrl_irrig', perrWith='quiet')
        index_x2r_Flrl_rofi   = mct_aVect_indexRA(x2r_r,'Flrl_rofi')
-
+       
+       if (rof_bgc) then
+          index_x2r_Flrl_rofsur_DOC = mct_aVect_indexRA(x2r_r,'Flrl_rofsur_DOC') 
+          index_x2r_Flrl_rofsur_POC = mct_aVect_indexRA(x2r_r,'Flrl_rofsur_POC')
+          index_x2r_Flrl_rofsub_DOC = mct_aVect_indexRA(x2r_r,'Flrl_rofsub_DOC')
+          index_x2r_Flrl_rofsub_POC = mct_aVect_indexRA(x2r_r,'Flrl_rofsub_POC')
+          index_x2r_Flrl_rofi_DOC   = mct_aVect_indexRA(x2r_r,'Flrl_rofi_DOC')
+          index_x2r_Flrl_rofi_POC   = mct_aVect_indexRA(x2r_r,'Flrl_rofi_POC')
+       end if
+       
        index_x2r_Flrl_rofl_16O = mct_aVect_indexRA(x2r_r,'Flrl_rofl_16O', perrWith='quiet')
        if ( index_x2r_Flrl_rofl_16O /= 0 ) flds_wiso_rof = .true.
        if ( flds_wiso_rof )then
@@ -1173,7 +1213,15 @@ contains
        index_r2x_Firr_rofi   = mct_aVect_indexRA(r2x_r,'Firr_rofi')
        index_r2x_Flrr_flood  = mct_aVect_indexRA(r2x_r,'Flrr_flood')
        index_r2x_Flrr_supply = mct_aVect_indexRA(r2x_r,'Flrr_supply')
-
+       if (rof_bgc) then
+          index_r2x_Forr_rofl_DOC  = mct_aVect_indexRA(r2x_r,'Forr_rofl_DOC')
+          index_r2x_Forr_rofi_DOC  = mct_aVect_indexRA(r2x_r,'Forr_rofi_DOC')
+          index_r2x_Flrr_flood_DOC = mct_aVect_indexRA(r2x_r,'Forr_flood_DOC')
+          index_r2x_Forr_rofl_POC  = mct_aVect_indexRA(r2x_r,'Forr_rofl_POC') 
+          index_r2x_Forr_rofi_POC  = mct_aVect_indexRA(r2x_r,'Forr_rofi_POC')
+          index_r2x_Flrr_flood_POC = mct_aVect_indexRA(r2x_r,'Forr_flood_POC')
+       end if
+       
        if ( flds_wiso_rof )then
           index_r2x_Forr_rofl_16O   = mct_aVect_indexRA(r2x_r,'Forr_rofl_16O')
           index_r2x_Forr_rofl_18O   = mct_aVect_indexRA(r2x_r,'Forr_rofl_18O')

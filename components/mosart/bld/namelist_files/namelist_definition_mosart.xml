@@ -110,6 +110,14 @@ Default: .false.
 If .true., heat model will be turned on.
 </entry>
 
+<entry id="river_bgc" 
+       type="logical" 
+       category="mosart"
+       group="mosart_inparm">
+Default: .false.
+If .true., bgc model will be turned on.
+</entry>
+
 <entry id="do_budget" 
        type="integer" 
        category="mosart"

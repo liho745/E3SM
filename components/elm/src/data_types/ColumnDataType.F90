@@ -508,6 +508,8 @@ module ColumnDataType
     real(r8), pointer :: snow_sources         (:)   => null() ! snow sources (mm H2O/s)
     real(r8), pointer :: snow_sinks           (:)   => null() ! snow sinks (mm H2O/s)
 
+    real(r8), pointer :: qflx_drain_doc       (:)   => null() ! sub-surface runoff (mm H2O /s)
+
     real(r8), pointer :: qflx_surf_irrig      (:)   => null() ! col real surface irrigation flux (mm H2O/s)
     real(r8), pointer :: qflx_grnd_irrig      (:)   => null() ! col real groundwater irrigation flux (mm H2O/s)
     real(r8), pointer :: qflx_irrig           (:)   => null() ! col irrigation flux (mm H2O/s)
@@ -645,8 +647,8 @@ module ColumnDataType
     real(r8), pointer :: vegfire                               (:)     => null() ! column (gC/m2/s) patch-level fire loss (obsolete, mark for removal) (p2c)
     real(r8), pointer :: wood_harvestc                         (:)     => null() ! column (p2c)
     real(r8), pointer :: hrv_xsmrpool_to_atm                   (:)     => null() ! column excess MR pool harvest mortality (gC/m2/s) (p2c)
-    real(r8), pointer :: plant_to_litter_cflux		             (:)     => null() ! for the purpose of mass balance check
-    real(r8), pointer :: plant_to_cwd_cflux		                 (:)     => null() ! for the purpose of mass balance check
+    real(r8), pointer :: plant_to_litter_cflux                     (:)     => null() ! for the purpose of mass balance check
+    real(r8), pointer :: plant_to_cwd_cflux                         (:)     => null() ! for the purpose of mass balance check
     ! Temporary and annual sums
     real(r8), pointer :: annsum_npp                            (:)     => null() ! col annual sum of NPP, averaged from pft-level (gC/m2/yr)
     ! C4MIP output variable
@@ -660,6 +662,11 @@ module ColumnDataType
     real(r8), pointer :: externalc_to_decomp_delta             (:)     => null() ! col (gC/m2) summarized net change of whole column C i/o to decomposing pool bwtn time-step
     real(r8), pointer :: f_co2_soil_vr                         (:,:)   => null() ! total vertically-resolved soil-atm. CO2 exchange (gC/m3/s)
     real(r8), pointer :: f_co2_soil                            (:)     => null() ! total soil-atm. CO2 exchange (gC/m2/s)
+
+    ! river_bgc
+    real(r8), pointer :: f_doc_soil_qsur                       (:)     => null() ! doc leaching flux with surface runoff (gC/m2/s)
+    real(r8), pointer :: f_doc_soil_qsub                       (:)     => null() ! doc leaching flux with subsurface runoff (gC/m2/s)
+    real(r8), pointer :: f_poc_soil                            (:)     => null() ! poc leaching flux (gC/m2/s)
 
   contains
     procedure, public :: Init       => col_cf_init
@@ -1678,7 +1685,7 @@ contains
        this%h2osoi_ice(c,-nlevsno+1:) = spval
 
        if (.not. lun_pp%lakpoi(l)) then  !not lake
-	       nlevbed = col_pp%nlevbed(c)
+           nlevbed = col_pp%nlevbed(c)
           ! volumetric water
           if (lun_pp%itype(l) == istsoil .or. lun_pp%itype(l) == istcrop) then
              nlevs = nlevgrnd
@@ -1686,7 +1693,7 @@ contains
                 if (j > nlevbed) then
                    this%h2osoi_vol(c,j) = 0.0_r8
                 else
-		               if (use_fates .or. use_hydrstress) then
+                       if (use_fates .or. use_hydrstress) then
                       this%h2osoi_vol(c,j) = 0.70_r8*watsat_input(c,j) !0.15_r8 to avoid very dry conditions that cause errors in FATES
                    else
                       this%h2osoi_vol(c,j) = 0.15_r8
@@ -2218,6 +2225,7 @@ contains
                  avgflag='A', long_name=longname, &
                   ptr_col=data1dptr)
        end do
+
        this%totlitc(begc:endc) = spval
         call hist_addfld1d (fname='C13_TOTLITC', units='gC13/m^2', &
               avgflag='A', long_name='C13 total litter carbon', &
@@ -2307,6 +2315,7 @@ contains
                      avgflag='A', long_name=longname, ptr_col=data1dptr, default='inactive')
           endif
        end do
+
        this%totlitc(begc:endc) = spval
         call hist_addfld1d (fname='C14_TOTLITC', units='gC14/m^2', &
               avgflag='A', long_name='C14 total litter carbon', &
@@ -4068,11 +4077,11 @@ contains
           do c = bounds%begc, bounds%endc
              do j = 1, nlevdecomp
                 if ( exit_spinup ) then
-		             m = decomp_cascade_con%spinup_factor(k)
+                     m = decomp_cascade_con%spinup_factor(k)
                    if (decomp_cascade_con%spinup_factor(k) > 1) m = m / cnstate_vars%scalaravg_col(c,j)
                 else if ( enter_spinup ) then
                    m = 1. / decomp_cascade_con%spinup_factor(k)
-		             if (decomp_cascade_con%spinup_factor(k) > 1) m = m * cnstate_vars%scalaravg_col(c,j)
+                     if (decomp_cascade_con%spinup_factor(k) > 1) m = m * cnstate_vars%scalaravg_col(c,j)
                 end if
                 this%decomp_npools_vr(c,j,k) = this%decomp_npools_vr(c,j,k) * m
              end do
@@ -5029,12 +5038,12 @@ contains
        do k = 1, ndecomp_pools
           do c = bounds%begc, bounds%endc
              do j = 1, nlevdecomp
-	             if ( exit_spinup ) then
-		             m = decomp_cascade_con%spinup_factor(k)
+                 if ( exit_spinup ) then
+                     m = decomp_cascade_con%spinup_factor(k)
                    if (decomp_cascade_con%spinup_factor(k) > 1) m = m  / cnstate_vars%scalaravg_col(c,j)
                 else if ( enter_spinup ) then
                    m = 1. / decomp_cascade_con%spinup_factor(k)
-		             if (decomp_cascade_con%spinup_factor(k) > 1) m = m  * cnstate_vars%scalaravg_col(c,j)
+                     if (decomp_cascade_con%spinup_factor(k) > 1) m = m  * cnstate_vars%scalaravg_col(c,j)
                 end if
                 this%decomp_ppools_vr(c,j,k) = this%decomp_ppools_vr(c,j,k) * m
              end do
@@ -5724,6 +5733,7 @@ contains
     allocate(this%qflx_over_supply       (begc:endc))             ; this%qflx_over_supply     (:)   = spval
     allocate(this%qflx_irr_demand        (begc:endc))             ; this%qflx_irr_demand      (:)   = spval
     allocate(this%qflx_h2orof_drain      (begc:endc))             ; this%qflx_h2orof_drain    (:)   = spval
+    allocate(this%qflx_drain_doc         (begc:endc))             ; this%qflx_drain_doc       (:)   = nan
 
     !VSFM variables
     ncells = endc - begc + 1
@@ -6088,7 +6098,7 @@ contains
     allocate(this%wood_harvestc                     (begc:endc))                  ; this%wood_harvestc                (:)   = spval
     allocate(this%hrv_xsmrpool_to_atm               (begc:endc))                  ; this%hrv_xsmrpool_to_atm          (:)   = spval
     allocate(this%plant_to_litter_cflux             (begc:endc))                  ; this%plant_to_litter_cflux        (:)   = spval
-    allocate(this%plant_to_cwd_cflux	             (begc:endc))                  ; this%plant_to_cwd_cflux		       (:)    = spval
+    allocate(this%plant_to_cwd_cflux                 (begc:endc))                  ; this%plant_to_cwd_cflux               (:)    = spval
     allocate(this%annsum_npp                        (begc:endc))                  ; this%annsum_npp                   (:)   = spval
     ! C4MIP output variable
      allocate(this%plant_c_to_cwdc                  (begc:endc))                  ; this%plant_c_to_cwdc              (:)  = spval
@@ -6101,6 +6111,9 @@ contains
     allocate(this%externalc_to_decomp_delta         (begc:endc))                  ; this%externalc_to_decomp_delta    (:)   = spval
     allocate(this%f_co2_soil_vr                     (begc:endc,1:nlevdecomp_full)); this%f_co2_soil_vr                (:,:) = spval
     allocate(this%f_co2_soil                        (begc:endc))                  ; this%f_co2_soil                   (:)   = spval
+    allocate(this%f_doc_soil_qsur                   (begc:endc))                  ; this%f_doc_soil_qsur              (:)   = nan
+    allocate(this%f_doc_soil_qsub                   (begc:endc))                  ; this%f_doc_soil_qsub              (:)   = nan
+    allocate(this%f_poc_soil                        (begc:endc))                  ; this%f_poc_soil                   (:)   = nan
 
     !-----------------------------------------------------------------------
     ! initialize history fields for select members of col_cf
@@ -6232,7 +6245,22 @@ contains
        call hist_addfld1d (fname='SOMC_YLD', units='gC/m^2/s', &
             avgflag='A', long_name='SOC erosional loss to inland waters', &
             ptr_col=this%somc_yield, default='inactive')
+            
+       this%f_doc_soil_qsur(begc:endc) = spval
+       call hist_addfld1d (fname='DOC_LEACH_QSUR', units='gC/m^2/s', &
+            avgflag='A', long_name='DOC leaches', &
+            ptr_col=this%f_doc_soil_qsur, default='inactive')
 
+       this%f_doc_soil_qsub(begc:endc) = spval
+       call hist_addfld1d (fname='DOC_LEACH_QSUB', units='gC/m^2/s', &
+            avgflag='A', long_name='DOC leaches', &
+            ptr_col=this%f_doc_soil_qsub, default='inactive')
+
+       this%f_poc_soil(begc:endc) = spval
+       call hist_addfld1d (fname='POC_LEACH', units='gC/m^2/s', &
+            avgflag='A', long_name='POC leaches', &
+            ptr_col=this%f_poc_soil, default='inactive')
+       
        this%decomp_cpools_erode(begc:endc,:)   = spval
        this%decomp_cpools_deposit(begc:endc,:) = spval
        this%decomp_cpools_yield(begc:endc,:)   = spval
@@ -7767,6 +7795,10 @@ contains
        this%er(i)                        = value_column
        this%som_c_leached(i)             = value_column
        this%somc_yield(i)                = value_column
+	   this%f_doc_soil_qsur(i)           = value_column
+	   this%f_doc_soil_qsub(i)           = value_column
+	   this%f_poc_soil(i)                = value_column
+
        this%somhr(i)                     = value_column ! REVISIT
        this%lithr(i)                     = value_column ! REVISIT
        this%hr(i)                        = value_column
@@ -8151,34 +8183,34 @@ contains
     !-----------------------------------------------------------------------
     ! allocate for each member of col_nf
     !-----------------------------------------------------------------------
-    allocate(this%ndep_to_sminn                   (begc:endc))                   ; this%ndep_to_sminn	                 (:)   = spval
+    allocate(this%ndep_to_sminn                   (begc:endc))                   ; this%ndep_to_sminn                     (:)   = spval
     allocate(this%ndep_to_sminn_nh3               (begc:endc))                   ; this%ndep_to_sminn_nh3                (:)   = spval
     allocate(this%ndep_to_sminn_no3               (begc:endc))                   ; this%ndep_to_sminn_no3                (:)   = spval
-    allocate(this%nfix_to_sminn                   (begc:endc))                   ; this%nfix_to_sminn	                 (:)   = spval
+    allocate(this%nfix_to_sminn                   (begc:endc))                   ; this%nfix_to_sminn                     (:)   = spval
     allocate(this%nfix_to_ecosysn                 (begc:endc))                   ; this%nfix_to_ecosysn                (:)   = spval
 
-    allocate(this%fert_to_sminn                   (begc:endc))                   ; this%fert_to_sminn	                 (:)   = spval
+    allocate(this%fert_to_sminn                   (begc:endc))                   ; this%fert_to_sminn                     (:)   = spval
     allocate(this%soyfixn_to_sminn                (begc:endc))                   ; this%soyfixn_to_sminn               (:)   = spval
     allocate(this%hrv_deadstemn_to_prod10n        (begc:endc))                   ; this%hrv_deadstemn_to_prod10n       (:)   = spval
     allocate(this%hrv_deadstemn_to_prod100n       (begc:endc))                   ; this%hrv_deadstemn_to_prod100n      (:)   = spval
     allocate(this%hrv_cropn_to_prod1n             (begc:endc))                   ; this%hrv_cropn_to_prod1n            (:)   = spval
-    allocate(this%sminn_to_plant                  (begc:endc))                   ; this%sminn_to_plant	               (:)   = spval
+    allocate(this%sminn_to_plant                  (begc:endc))                   ; this%sminn_to_plant                   (:)   = spval
     allocate(this%potential_immob                 (begc:endc))                   ; this%potential_immob                (:)   = spval
     allocate(this%actual_immob                    (begc:endc))                   ; this%actual_immob                   (:)   = spval
     allocate(this%gross_nmin                      (begc:endc))                   ; this%gross_nmin                     (:)   = spval
     allocate(this%net_nmin                        (begc:endc))                   ; this%net_nmin                       (:)   = spval
-    allocate(this%denit                           (begc:endc))                   ; this%denit		                       (:)   = spval
+    allocate(this%denit                           (begc:endc))                   ; this%denit                               (:)   = spval
     allocate(this%supplement_to_sminn             (begc:endc))                   ; this%supplement_to_sminn            (:)   = spval
     allocate(this%prod1n_loss                     (begc:endc))                   ; this%prod1n_loss                    (:)   = spval
     allocate(this%prod10n_loss                    (begc:endc))                   ; this%prod10n_loss                   (:)   = spval
-    allocate(this%prod100n_loss                   (begc:endc))                   ; this%prod100n_loss	                 (:)   = spval
-    allocate(this%product_nloss                   (begc:endc))                   ; this%product_nloss	                 (:)   = spval
+    allocate(this%prod100n_loss                   (begc:endc))                   ; this%prod100n_loss                     (:)   = spval
+    allocate(this%product_nloss                   (begc:endc))                   ; this%product_nloss                     (:)   = spval
     allocate(this%ninputs                         (begc:endc))                   ; this%ninputs                        (:)   = spval
     allocate(this%noutputs                        (begc:endc))                   ; this%noutputs                       (:)   = spval
     allocate(this%fire_nloss                      (begc:endc))                   ; this%fire_nloss                     (:)   = spval
     allocate(this%fire_decomp_nloss               (begc:endc))                   ; this%fire_decomp_nloss              (:)   = spval
     allocate(this%fire_nloss_p2c                  (begc:endc))                   ; this%fire_nloss_p2c                 (:)   = spval
-    allocate(this%som_n_leached                   (begc:endc))                   ; this%som_n_leached	                 (:)   = spval
+    allocate(this%som_n_leached                   (begc:endc))                   ; this%som_n_leached                     (:)   = spval
     allocate(this%som_n_runoff                    (begc:endc))                   ; this%som_n_runoff                   (:)  = spval
     allocate(this%somn_erode                      (begc:endc))                   ; this%somn_erode                     (:)   = spval
     allocate(this%somn_deposit                    (begc:endc))                   ; this%somn_deposit                   (:)   = spval
@@ -8282,7 +8314,7 @@ contains
     allocate(this%col_plant_nh4demand_vr          (begc:endc,1:nlevdecomp))       ; this%col_plant_nh4demand_vr        (:,:) = spval
     allocate(this%col_plant_no3demand_vr          (begc:endc,1:nlevdecomp))       ; this%col_plant_no3demand_vr        (:,:) = spval
     allocate(this%plant_n_uptake_flux             (begc:endc))                    ; this%plant_n_uptake_flux           (:)   = spval
-    allocate(this%soil_n_immob_flux               (begc:endc))                    ; this%soil_n_immob_flux	           (:)   = spval
+    allocate(this%soil_n_immob_flux               (begc:endc))                    ; this%soil_n_immob_flux               (:)   = spval
     allocate(this%soil_n_immob_flux_vr            (begc:endc,1:nlevdecomp))       ; this%soil_n_immob_flux_vr          (:,:) = spval
     allocate(this%soil_n_grossmin_flux            (begc:endc))                    ; this%soil_n_grossmin_flux          (:)   = spval
     allocate(this%actual_immob_no3                (begc:endc))                    ; this%actual_immob_no3              (:)   = spval

@@ -11,7 +11,7 @@ module RunoffMod
 ! !USES:
   use shr_kind_mod, only : r8 => shr_kind_r8
   use mct_mod
-  use RtmVar         , only : iulog, spval, heatflag, data_bgc_fluxes_to_ocean_flag
+  use RtmVar         , only : iulog, spval, heatflag, river_bgc, data_bgc_fluxes_to_ocean_flag
   use rof_cpl_indices, only : nt_rtm
 
 ! !PUBLIC TYPES:
@@ -72,6 +72,7 @@ module RunoffMod
      real(r8), pointer :: dvolrdtlnd(:,:)  ! dvolrdt masked for land (mm/s)
      real(r8), pointer :: dvolrdtocn(:,:)  ! dvolrdt masked for ocn  (mm/s)
      real(r8), pointer :: volr(:,:)        ! RTM storage (m3)
+     real(r8), pointer :: QTrib(:,:)       ! tributary discharge (m3 H2O/s)
      real(r8), pointer :: fthresh(:)       ! RTM water flood threshold
      real(r8), pointer :: inundffunit(:)   ! Inundation  water volume (m3) 
      real(r8), pointer :: inundwf(:)       ! Inundation floodplain water volume (m3)
@@ -125,6 +126,10 @@ module RunoffMod
      real(r8), pointer :: runofflnd_nt2(:)
      real(r8), pointer :: runofflnd_nt3(:)
      real(r8), pointer :: runofflnd_nt4(:)
+     real(r8), pointer :: QTrib_nt1(:)
+     real(r8), pointer :: QTrib_nt2(:)
+     real(r8), pointer :: QTrib_nt3(:)
+     real(r8), pointer :: QTrib_nt4(:)
      real(r8), pointer :: runoffocn_nt1(:)
      real(r8), pointer :: runoffocn_nt2(:)
      real(r8), pointer :: runoffocn_nt3(:)
@@ -143,13 +148,13 @@ module RunoffMod
      real(r8), pointer :: dvolrdtlnd_nt4(:)
      real(r8), pointer :: dvolrdtocn_nt1(:)
      real(r8), pointer :: dvolrdtocn_nt2(:)
-     real(r8), pointer :: wr_nt1(:)
      real(r8), pointer :: dvolrdtocn_nt3(:)
      real(r8), pointer :: dvolrdtocn_nt4(:)
      real(r8), pointer :: volr_nt1(:)
      real(r8), pointer :: volr_nt2(:)
      real(r8), pointer :: volr_nt3(:)
      real(r8), pointer :: volr_nt4(:)
+     real(r8), pointer :: wr_nt1(:)
      real(r8), pointer :: qsur_nt1(:)
      real(r8), pointer :: qsur_nt2(:)
      real(r8), pointer :: qsur_nt3(:)
@@ -174,6 +179,48 @@ module RunoffMod
      real(r8), pointer :: templand_Tqsub_nt2(:)
      real(r8), pointer :: templand_Ttrib_nt2(:)
      real(r8), pointer :: templand_Tchanr_nt2(:)
+
+
+     real(r8), pointer :: qsur_nt5(:)
+     real(r8), pointer :: qsur_nt6(:)
+     real(r8), pointer :: qsur_nt7(:)
+     real(r8), pointer :: qsur_nt8(:)
+     real(r8), pointer :: qsub_nt5(:)
+     real(r8), pointer :: qsub_nt6(:)
+     real(r8), pointer :: qsub_nt7(:)
+     real(r8), pointer :: qsub_nt8(:)
+     real(r8), pointer :: runofflnd_nt5(:)
+     real(r8), pointer :: runofflnd_nt6(:)
+     real(r8), pointer :: runofflnd_nt7(:)
+     real(r8), pointer :: runofflnd_nt8(:)
+     real(r8), pointer :: QTrib_nt5(:)
+     real(r8), pointer :: QTrib_nt6(:)
+     real(r8), pointer :: QTrib_nt7(:)
+     real(r8), pointer :: QTrib_nt8(:)
+     real(r8), pointer :: runoffocn_nt5(:)
+     real(r8), pointer :: runoffocn_nt6(:)
+     real(r8), pointer :: runoffocn_nt7(:)
+     real(r8), pointer :: runoffocn_nt8(:)
+     real(r8), pointer :: runofftot_nt5(:)
+     real(r8), pointer :: runofftot_nt6(:)
+     real(r8), pointer :: runofftot_nt7(:)
+     real(r8), pointer :: runofftot_nt8(:)
+     real(r8), pointer :: runoffdir_nt5(:)
+     real(r8), pointer :: runoffdir_nt6(:)
+     real(r8), pointer :: runoffdir_nt7(:)
+     real(r8), pointer :: runoffdir_nt8(:)
+     real(r8), pointer :: dvolrdtlnd_nt5(:)
+     real(r8), pointer :: dvolrdtlnd_nt6(:)
+     real(r8), pointer :: dvolrdtlnd_nt7(:)
+     real(r8), pointer :: dvolrdtlnd_nt8(:)
+     real(r8), pointer :: dvolrdtocn_nt5(:)
+     real(r8), pointer :: dvolrdtocn_nt6(:)
+     real(r8), pointer :: dvolrdtocn_nt7(:)
+     real(r8), pointer :: dvolrdtocn_nt8(:)
+     real(r8), pointer :: volr_nt5(:)
+     real(r8), pointer :: volr_nt6(:)
+     real(r8), pointer :: volr_nt7(:)
+     real(r8), pointer :: volr_nt8(:)
 
      real(r8), pointer :: ssh(:)
      real(r8), pointer :: yr_nt1(:)
@@ -357,12 +404,14 @@ module RunoffMod
      real(r8), pointer :: qsub(:,:)    ! Subsurface runoff generated from hillslope, [m/s]
      real(r8), pointer :: qdto(:,:)    ! Direct to Ocean runoff, [m/s]
      real(r8), pointer :: qgwl(:,:)    ! gwl runoff term from glacier, wetlands and lakes, [m/s]
+	 real(r8), pointer :: conc_h(:,:)  ! MOSART hillslope concentration of tracers such as sediment, C,N,P (mass/volume)
      !! fluxes
      real(r8), pointer :: ehout(:,:)   ! overland flow from hillslope into the sub-channel, [m/s]          ( Note: outflow is negative. --Inund. )
      real(r8), pointer :: asat(:,:)    ! saturated area fraction from hillslope, [-]
      real(r8), pointer :: esat(:,:)    ! evaporation from saturated area fraction at hillslope, [m/s]
      real(r8), pointer :: ehexchange(:,:)    ! net influx from hillslope (soil) storage into overland flow, e.g., soil erosion [kg/s], or runoff re-infiltration [m/s]
      real(r8), pointer :: ehexch_avg(:,:)    ! net influx from hillslope (soil) storage into overland flow, e.g., soil erosion [kg/s], or runoff re-infiltration [m/s], average
+	 real(r8), pointer :: ehsource(:,:)! source at hillslope, [m/s] for water and [kg/m2/s] for others. positive--source; negative--sink.
 
      ! subnetwork channel
      !! states
@@ -385,6 +434,8 @@ module RunoffMod
      real(r8), pointer :: qdem(:,:)    ! irrigation demand [m/s] !added by Yuna 1/29/2018
      real(r8), pointer :: etexchange(:,:)    ! net influx from channel bank storage into channel, e.g., sediment erosion/deposition [kg/s], or groundwater/river water exchange [m/s]
      real(r8), pointer :: etexch_avg(:,:)    ! net influx from channel bank storage into channel, e.g., sediment erosion/deposition [kg/s], or groundwater/river water exchange [m/s], average
+	 real(r8), pointer :: etsource(:,:)! source to sub-network, [m3/s] for water and [kg/s] for others. positive--source; negative--sink.
+     real(r8), pointer :: etsource_avg(:,:)! source to sub-network, [m3/s] for water and [kg/s] for others. positive--source; negative--sink.
 
      ! main channel
      !! states
@@ -410,6 +461,8 @@ module RunoffMod
      real(r8), pointer :: erlateral(:,:) ! lateral flow from hillslope, including surface and subsurface runoff generation components, [m3/s]
      real(r8), pointer :: erin(:,:)    ! inflow from upstream links, [m3/s]
      real(r8), pointer :: erout(:,:)   ! outflow into downstream links, [m3/s] (negative is out)
+	 real(r8), pointer :: ersource(:,:)! source to main channel, [m3/s] for water and [kg/s] for others. positive--source; negative--sink.
+     real(r8), pointer :: ersource_avg(:,:)! source to main channel, [m3/s] for water and [kg/s] for others. positive--source; negative--sink.
      real(r8), pointer :: eroup_lagi(:,:) ! outflow into downstream links from previous timestep, [m3/s]  (Note: average channel outflow in one MOSART sub-step. --Inund.)
      real(r8), pointer :: eroup_lagf(:,:) ! outflow into downstream links from current timestep, [m3/s]
      real(r8), pointer :: erowm_regi(:,:) ! initial outflow before dam regulation at current timestep, [m3/s]
@@ -518,7 +571,18 @@ module RunoffMod
       real(r8), pointer :: Tr_avg(:)      ! average temperature of main channel water, [K], for output purpose
       
   end type TstatusFlux_heat
-
+  
+  ! Fluxes due to transformation between different BGC elements
+  public :: Ttransform
+  type Ttransform
+     real(r8), pointer :: eh_convert(:,:,:) ! transformation at hillslopes, [kg/s]. e.g., eh_convert(:,nliq_NH4,nliq_NO3) is for the transformation from liq_NH4 to liq_NO3, and vice versa
+     real(r8), pointer :: et_convert(:,:,:) ! transformation in sub-network channels, [kg/s]
+     real(r8), pointer :: er_convert(:,:,:) ! transformation in main channels, [kg/s]
+	 
+     real(r8), pointer :: kh_convert(:,:,:) ! transformation ratio at hillslopes, [s-1]
+     real(r8), pointer :: kt_convert(:,:,:) ! transformation ratio in sub-network channels, [s-1].     
+	 real(r8), pointer :: kr_convert(:,:,:) ! transformation ratio in main channels, [s-1].
+  end type Ttransform
  
   ! parameters to be calibrated. Ideally, these parameters are supposed to be uniform for one region
   public :: Tparameter
@@ -540,6 +604,7 @@ module RunoffMod
   type (Tparameter)  , public :: TPara
   !== Hongyi
 
+  type (Ttransform)  , public :: Ttran
   type (runoff_flow) , public :: rtmCTL
 
   public :: RunoffInit
@@ -561,6 +626,7 @@ contains
              rtmCTL%runofftot(begr:endr,nt_rtm),  &
              rtmCTL%area(begr:endr),              &
              rtmCTL%volr(begr:endr,nt_rtm),       &
+             rtmCTL%QTrib(begr:endr,nt_rtm),      &
              rtmCTL%lonc(begr:endr),              &
              rtmCTL%latc(begr:endr),              &
              rtmCTL%dsig(begr:endr),              &
@@ -607,6 +673,8 @@ contains
              rtmCTL%qdto_nt2(begr:endr),          &
              rtmCTL%qdem_nt1(begr:endr),          &
              rtmCTL%qdem_nt2(begr:endr),          &
+             rtmCTL%QTrib_nt1(begr:endr),         &
+             rtmCTL%QTrib_nt2(begr:endr),         &
              rtmCTL%mask(begr:endr),              &
              rtmCTL%rmask(begr:endr),             &
              rtmCTL%gindex(begr:endr),            &
@@ -668,6 +736,7 @@ contains
     rtmCTL%dvolrdtlnd(:,:) = spval
     rtmCTL%dvolrdtocn(:,:) = spval
     rtmCTL%volr(:,:)       = 0._r8
+    rtmCTL%QTrib(:,:)      = 0._r8
     rtmCTL%flood(:)        = 0._r8
     rtmCTL%direct(:,:)     = 0._r8
     rtmCTL%inundinf(:)     = 0._r8
@@ -728,6 +797,70 @@ contains
       rtmCTL%templand_Ttrib(:)  = spval
       rtmCTL%templand_Tchanr(:) = spval
       
+    end if
+
+    if ( river_bgc ) then
+        allocate(rtmCTL%runofflnd_nt5(begr:endr),     &
+                 rtmCTL%runoffocn_nt5(begr:endr),     &
+                 rtmCTL%runofftot_nt5(begr:endr),     &
+                 rtmCTL%runoffdir_nt5(begr:endr),     &
+                 rtmCTL%volr_nt5(begr:endr),          &
+                 rtmCTL%dvolrdtlnd_nt5(begr:endr),    &
+                 rtmCTL%dvolrdtocn_nt5(begr:endr),    &
+                 rtmCTL%qsur_nt5(begr:endr),          &
+                 rtmCTL%qsub_nt5(begr:endr),          &
+                 rtmCTL%runofflnd_nt6(begr:endr),     &
+                 rtmCTL%runoffocn_nt6(begr:endr),     &
+                 rtmCTL%runofftot_nt6(begr:endr),     &
+                 rtmCTL%runoffdir_nt6(begr:endr),     &
+                 rtmCTL%volr_nt6(begr:endr),          &
+                 rtmCTL%dvolrdtlnd_nt6(begr:endr),    &
+                 rtmCTL%dvolrdtocn_nt6(begr:endr),    &
+				 rtmCTL%runofflnd_nt7(begr:endr),     &
+                 rtmCTL%runoffocn_nt7(begr:endr),     &
+                 rtmCTL%runofftot_nt7(begr:endr),     &
+                 rtmCTL%runoffdir_nt7(begr:endr),     &
+                 rtmCTL%volr_nt7(begr:endr),          &
+                 rtmCTL%dvolrdtlnd_nt7(begr:endr),    &
+                 rtmCTL%dvolrdtocn_nt7(begr:endr),    &
+                 rtmCTL%qsur_nt7(begr:endr),          &
+                 rtmCTL%qsub_nt7(begr:endr),          &
+                 rtmCTL%runofflnd_nt8(begr:endr),     &
+                 rtmCTL%runoffocn_nt8(begr:endr),     &
+                 rtmCTL%runofftot_nt8(begr:endr),     &
+                 rtmCTL%runoffdir_nt8(begr:endr),     &
+                 rtmCTL%volr_nt8(begr:endr),          &
+                 rtmCTL%dvolrdtlnd_nt8(begr:endr),    &
+                 rtmCTL%dvolrdtocn_nt8(begr:endr),    &
+                 rtmCTL%QTrib_nt5(begr:endr),         &
+                 rtmCTL%QTrib_nt6(begr:endr),         &
+                 rtmCTL%QTrib_nt7(begr:endr),         &
+                 rtmCTL%QTrib_nt8(begr:endr),         &
+                 stat=ier)
+        if (ier /= 0) then
+           write(iulog,*)'Rtmini ERROR allocation of runoff-nitrogen local arrays'
+           call shr_sys_abort
+        end if
+       
+        allocate(Ttran%eh_convert(begr:endr,nt_rtm,nt_rtm), &
+	             Ttran%et_convert(begr:endr,nt_rtm,nt_rtm), &
+	             Ttran%er_convert(begr:endr,nt_rtm,nt_rtm), &
+	             Ttran%kh_convert(begr:endr,nt_rtm,nt_rtm), &
+	             Ttran%kt_convert(begr:endr,nt_rtm,nt_rtm), &
+	             Ttran%kr_convert(begr:endr,nt_rtm,nt_rtm), &
+                 stat=ier)
+        if (ier /= 0) then
+           write(iulog,*)'Rtmini ERROR allocation of bgc transformation arrays'
+           call shr_sys_abort
+        end if
+		
+		Ttran%eh_convert(:,:,:) = 0._r8
+		Ttran%et_convert(:,:,:) = 0._r8
+		Ttran%er_convert(:,:,:) = 0._r8
+		Ttran%kh_convert(:,:,:) = 0._r8
+		Ttran%kt_convert(:,:,:) = 0._r8
+		Ttran%kr_convert(:,:,:) = 0._r8
+		
     end if
 
   end subroutine RunoffInit

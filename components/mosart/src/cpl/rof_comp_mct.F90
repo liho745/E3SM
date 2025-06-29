@@ -27,7 +27,7 @@ module rof_comp_mct
                                 inst_index, inst_suffix, inst_name, RtmVarSet, &
                                 wrmflag, heatflag, data_bgc_fluxes_to_ocean_flag, &
                                 inundflag, use_lnd_rof_two_way, use_ocn_rof_two_way, &
-                                sediflag
+                                sediflag, river_bgc
   use RtmSpmd          , only : masterproc, mpicom_rof, npes, iam, RtmSpmdInit, ROFID
   use RtmMod           , only : Rtmini, Rtmrun
   use RtmTimeManager   , only : timemgr_setup, get_curr_date, get_step_size
@@ -61,7 +61,11 @@ module rof_comp_mct
                                 index_r2x_Flrr_supply, index_r2x_Flrr_deficit, &
                                 index_r2x_Sr_h2orof, index_r2x_Sr_frac_h2orof, &
                                 index_x2r_Flrl_inundinf
-
+                            
+  use rof_cpl_indices  , only : index_x2r_Flrl_rofsur_DOC, index_x2r_Flrl_rofsub_DOC, index_x2r_Flrl_rofi_DOC, &                                 
+                                index_x2r_Flrl_rofsur_POC, index_x2r_Flrl_rofsub_POC, index_x2r_Flrl_rofi_POC, &
+                                index_r2x_Forr_rofl_DOC, index_r2x_Forr_rofi_DOC, index_r2x_Flrr_flood_DOC,index_r2x_Flrr_volr_DOC, &
+                                index_r2x_Forr_rofl_POC, index_r2x_Forr_rofi_POC, index_r2x_Flrr_flood_POC,index_r2x_Flrr_volr_POC
   use mct_mod
   use ESMF
 #ifdef HAVE_MOAB
@@ -690,7 +694,7 @@ contains
     type(mct_aVect), intent(inout) :: x2r_r         
     !
     ! LOCAL VARIABLES
-    integer :: n2, n, nt, begr, endr, nliq, nfrz, nmud, nsan
+    integer :: n2, n, nt, begr, endr, nliq, nfrz, nmud, nsan, nliq_DOC, nfrz_DOC, nliq_POC, nfrz_POC
     real(R8) :: tmp1, tmp2
     real(R8) :: shum
     character(len=32), parameter :: sub = 'rof_import_mct'
@@ -702,6 +706,10 @@ contains
     nfrz = 0
     nmud = 0
     nsan = 0
+    nliq_DOC = 0
+    nfrz_DOC = 0
+    nliq_POC = 0
+    nfrz_POC = 0
     do nt = 1,nt_rtm
        if (trim(rtm_tracers(nt)) == 'LIQ') then
           nliq = nt
@@ -714,6 +722,18 @@ contains
        endif
        if (trim(rtm_tracers(nt)) == 'SAN') then
           nsan = nt
+       endif
+       if (trim(rtm_tracers(nt)) == 'LIQ_DOC') then
+          nliq_DOC = nt
+       endif
+       if (trim(rtm_tracers(nt)) == 'ICE_DOC') then
+          nfrz_DOC = nt
+       endif
+       if (trim(rtm_tracers(nt)) == 'LIQ_POC') then
+          nliq_POC = nt
+       endif
+       if (trim(rtm_tracers(nt)) == 'ICE_POC') then
+          nfrz_POC = nt
        endif
     enddo
     if (nliq == 0) then
@@ -730,6 +750,14 @@ contains
     endif
     if (nsan == 0) then
        write(iulog,*) trim(sub),': ERROR in rtm_tracers SAN',nsan,rtm_tracers
+       call shr_sys_abort()
+    endif
+    if (nliq_DOC == 0 .or. nfrz_DOC == 0) then
+       write(iulog,*) trim(sub),': ERROR in rtm_tracers LIQ_DOC ICE_DOC ',nliq_DOC,nfrz_DOC,rtm_tracers
+       call shr_sys_abort()
+    endif
+    if (nliq_POC == 0 .or. nfrz_POC == 0) then
+       write(iulog,*) trim(sub),': ERROR in rtm_tracers LIQ_POC ICE_POC ',nliq_POC,nfrz_POC,rtm_tracers
        call shr_sys_abort()
     endif
 
@@ -796,6 +824,57 @@ contains
            rtmCTL%qsur(n,nsan) = 0.0_r8
         enddo
     end if
+    
+    if ( river_bgc ) then
+        do n = begr,endr
+           n2 = n - begr + 1
+           
+           ! TODO: note here unit convert from gC/m2/s to kgC/s
+           rtmCTL%qsur(n,nliq_DOC) = x2r_r%rAttr(index_x2r_Flrl_rofsur_DOC,n2) * (rtmCTL%area(n)*0.001_r8)  
+           rtmCTL%qsub(n,nliq_DOC) = x2r_r%rAttr(index_x2r_Flrl_rofsub_DOC,n2) * (rtmCTL%area(n)*0.001_r8)
+           rtmCTL%qgwl(n,nliq_DOC) = 0.0_r8
+
+           rtmCTL%qsur(n,nfrz_DOC) = x2r_r%rAttr(index_x2r_Flrl_rofi_DOC,n2) * (rtmCTL%area(n)*0.001_r8)
+           rtmCTL%qsub(n,nfrz_DOC) = 0.0_r8
+           rtmCTL%qgwl(n,nfrz_DOC) = 0.0_r8
+           
+           rtmCTL%qsur(n,nliq_POC) = x2r_r%rAttr(index_x2r_Flrl_rofsur_POC,n2) * (rtmCTL%area(n)*0.001_r8)  
+           rtmCTL%qsub(n,nliq_POC) = x2r_r%rAttr(index_x2r_Flrl_rofsub_POC,n2) * (rtmCTL%area(n)*0.001_r8)
+           rtmCTL%qgwl(n,nliq_POC) = 0.0_r8
+
+           rtmCTL%qsur(n,nfrz_POC) = x2r_r%rAttr(index_x2r_Flrl_rofi_POC,n2) * (rtmCTL%area(n)*0.001_r8)
+           rtmCTL%qsub(n,nfrz_POC) = 0.0_r8
+           rtmCTL%qgwl(n,nfrz_POC) = 0.0_r8
+           
+           if(.not. heatflag) then
+              THeat%forc_t(n) = x2r_r%rAttr(index_x2r_Sa_tbot,n2)
+           end if
+		   
+		   !todo
+           if(0>1 .and. (rtmCTL%qsur(n,nliq_DOC)) > 1e10) then
+               write(unit=1112,fmt="(i10, 6(e20.11))") n, rtmCTL%qsur(n,nliq_DOC), x2r_r%rAttr(index_x2r_Flrl_rofsur_DOC,n2), rtmCTL%area(n), x2r_r%rAttr(index_x2r_Flrl_rofsub_DOC,n2), x2r_r%rAttr(index_x2r_Flrl_rofsur_POC,n2), x2r_r%rAttr(index_x2r_Flrl_rofsub_POC,n2) 
+              ! TODO: note here unit convert from gC/m2/s to kgC/s
+              rtmCTL%qsur(n,nliq_DOC) = 0.0_r8  
+              rtmCTL%qsub(n,nliq_DOC) = 0.0_r8
+              rtmCTL%qgwl(n,nliq_DOC) = 0.0_r8
+           
+              rtmCTL%qsur(n,nfrz_DOC) = 0.0_r8
+              rtmCTL%qsub(n,nfrz_DOC) = 0.0_r8
+              rtmCTL%qgwl(n,nfrz_DOC) = 0.0_r8
+              
+              rtmCTL%qsur(n,nliq_POC) = 0.0_r8 
+              rtmCTL%qsub(n,nliq_POC) = 0.0_r8
+              rtmCTL%qgwl(n,nliq_POC) = 0.0_r8
+           
+              rtmCTL%qsur(n,nfrz_POC) = 0.0_r8
+              rtmCTL%qsub(n,nfrz_POC) = 0.0_r8
+              rtmCTL%qgwl(n,nfrz_POC) = 0.0_r8
+               			   
+           end if
+           
+        enddo
+
+    end if
 
   end subroutine rof_import_mct
 
@@ -813,7 +892,7 @@ contains
     type(mct_aVect), intent(inout) :: r2x_r  ! Runoff to coupler export state
     !
     ! LOCAL VARIABLES
-    integer :: ni, n, nt, nliq, nfrz
+    integer :: ni, n, nt, nliq, nfrz, nliq_DOC, nfrz_DOC, nliq_POC, nfrz_POC
     logical,save :: first_time = .true.
     character(len=32), parameter :: sub = 'rof_export_mct'
     real(R8) :: tmp1
@@ -938,6 +1017,89 @@ contains
         r2x_r%rattr(index_r2x_Sr_frac_h2orof,ni) = rtmCTL%inundff(n)
       enddo
     endif
+
+    
+    if ( river_bgc ) then
+       nliq_DOC = 0
+       nfrz_DOC = 0
+       nliq_POC = 0
+       nfrz_POC = 0
+       do nt = 1,nt_rtm
+          if (trim(rtm_tracers(nt)) == 'LIQ_DOC') then
+             nliq_DOC = nt
+          endif
+          if (trim(rtm_tracers(nt)) == 'ICE_DOC') then
+             nfrz_DOC = nt
+          endif
+          if (trim(rtm_tracers(nt)) == 'LIQ_POC') then
+             nliq_POC = nt
+          endif
+          if (trim(rtm_tracers(nt)) == 'ICE_POC') then
+             nfrz_POC = nt
+          endif
+       enddo
+       if (nliq_DOC == 0 .or. nfrz_DOC == 0) then
+          write(iulog,*) trim(sub),': ERROR in rtm_tracers LIQ_DOC ICE_DOC ',nliq_DOC,nfrz_DOC,rtm_tracers
+          call shr_sys_abort()
+       endif
+       if (nliq_POC == 0 .or. nfrz_POC == 0) then
+          write(iulog,*) trim(sub),': ERROR in rtm_tracers LIQ_POC ICE_POC ',nliq_POC,nfrz_POC,rtm_tracers
+          call shr_sys_abort()
+       endif
+
+       ni = 0
+       if ( ice_runoff )then
+          do n = rtmCTL%begr,rtmCTL%endr
+             ni = ni + 1
+             r2x_r%rAttr(index_r2x_Forr_rofl_DOC,ni) =  rtmCTL%direct(n,nliq_DOC) / (rtmCTL%area(n)*0.001_r8)
+             r2x_r%rAttr(index_r2x_Forr_rofi_DOC,ni) =  rtmCTL%direct(n,nfrz_DOC) / (rtmCTL%area(n)*0.001_r8)
+             r2x_r%rAttr(index_r2x_Forr_rofl_POC,ni) =  rtmCTL%direct(n,nliq_POC) / (rtmCTL%area(n)*0.001_r8)
+             r2x_r%rAttr(index_r2x_Forr_rofi_POC,ni) =  rtmCTL%direct(n,nfrz_POC) / (rtmCTL%area(n)*0.001_r8)
+             if (rtmCTL%mask(n) >= 2) then
+                 ! tracers are treated separately - this is what goes to the ocean
+                r2x_r%rAttr(index_r2x_Forr_rofl_DOC,ni) = r2x_r%rAttr(index_r2x_Forr_rofl_DOC,ni) + &
+                   rtmCTL%runoff(n,nliq_DOC) / (rtmCTL%area(n)*0.001_r8)
+                r2x_r%rAttr(index_r2x_Forr_rofi_DOC,ni) = r2x_r%rAttr(index_r2x_Forr_rofi_DOC,ni) + &
+                   rtmCTL%runoff(n,nfrz_DOC) / (rtmCTL%area(n)*0.001_r8)
+                r2x_r%rAttr(index_r2x_Forr_rofl_POC,ni) = r2x_r%rAttr(index_r2x_Forr_rofl_POC,ni) + &
+                   rtmCTL%runoff(n,nliq_POC) / (rtmCTL%area(n)*0.001_r8)
+                r2x_r%rAttr(index_r2x_Forr_rofi_POC,ni) = r2x_r%rAttr(index_r2x_Forr_rofi_POC,ni) + &
+                   rtmCTL%runoff(n,nfrz_POC) / (rtmCTL%area(n)*0.001_r8)         
+                if (ni > rtmCTL%lnumr) then
+                   write(iulog,*) sub, ' : ERROR runoff count',n,ni
+                   call shr_sys_abort( sub//' : ERROR runoff > expected' )
+                endif
+             endif
+          end do
+       else
+          do n = rtmCTL%begr,rtmCTL%endr
+             ni = ni + 1
+             r2x_r%rAttr(index_r2x_Forr_rofl_DOC,ni) =  &
+                (rtmCTL%direct(n,nfrz_DOC)+rtmCTL%direct(n,nliq_DOC)) / (rtmCTL%area(n)*0.001_r8)
+             r2x_r%rAttr(index_r2x_Forr_rofl_POC,ni) =  &
+                (rtmCTL%direct(n,nfrz_POC)+rtmCTL%direct(n,nliq_POC)) / (rtmCTL%area(n)*0.001_r8) 
+             if (rtmCTL%mask(n) >= 2) then
+                r2x_r%rAttr(index_r2x_Forr_rofl_DOC,ni) = r2x_r%rAttr(index_r2x_Forr_rofl_DOC,ni) + &
+                   (rtmCTL%runoff(n,nfrz_DOC)+rtmCTL%runoff(n,nliq_DOC)) / (rtmCTL%area(n)*0.001_r8)
+                r2x_r%rAttr(index_r2x_Forr_rofl_POC,ni) = r2x_r%rAttr(index_r2x_Forr_rofl_POC,ni) + &
+                   (rtmCTL%runoff(n,nfrz_POC)+rtmCTL%runoff(n,nliq_POC)) / (rtmCTL%area(n)*0.001_r8)
+                if (ni > rtmCTL%lnumr) then
+                   write(iulog,*) sub, ' : ERROR runoff count',n,ni
+                   call shr_sys_abort( sub//' : ERROR runoff > expected' )
+                endif
+             endif
+          end do
+       end if
+    
+       ! Want volr on land side to do a correct water balance
+       ni = 0
+       do n = rtmCTL%begr, rtmCTL%endr
+          ni = ni + 1
+          r2x_r%rattr(index_r2x_Flrr_volr_DOC,ni)    = (Trunoff%wr(n,nliq_DOC) + Trunoff%wt(n,nliq_DOC)) / rtmCTL%area(n)
+          r2x_r%rattr(index_r2x_Flrr_volr_POC,ni)    = (Trunoff%wr(n,nliq_POC) + Trunoff%wt(n,nliq_POC)) / rtmCTL%area(n)
+       end do
+
+    end if
 
   end subroutine rof_export_mct
 

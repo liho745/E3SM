@@ -129,8 +129,9 @@ MODULE WRM_type_mod
      real(r8), pointer :: out_lc(:)      	! (nd) outlet location (% in decimal)
      integer,  pointer :: purpose(:)      	! (nd) reservoir purpose to estimate outlet location
      real(r8), pointer :: temp_resrv(:,:)   ! (nd,nlayers) reservoir temperature with max 30 layers [K]
-     real(r8), pointer :: resrv_surf(:)   	! (b:e) reservoir surface temperature [K]
-     real(r8), pointer :: resrv_out(:)    	! (b:e) reservoir outflow temperature [K]	 
+     real(r8), pointer :: resrv_surf(:)   	! (nd) reservoir surface temperature [K]
+     real(r8), pointer :: resrv_out(:)    	! (nd) reservoir outflow temperature [K]	 
+     real(r8), pointer :: resrv_Tavg(:)   	! (nd) reservoir average temperature [K]
      real(r8), pointer :: d_resrv(:) 		! (nd) reservoir depth updated on each timestep [m]
      real(r8), pointer :: h_resrv(:) 		! (nd) reservoir initial depth[m]
      real(r8), pointer :: ddz_local(:)      ! (nd) initlal layer thickness to be used to calculate layer thickness limit

@@ -662,6 +662,8 @@ MODULE WRM_subw_IO_mod
 		 WRMUnit%temp_resrv = rinittemp
 		 allocate (WRMUnit%resrv_surf(begr:endr))
 		 WRMUnit%resrv_surf = rinittemp
+		 allocate (WRMUnit%resrv_Tavg(begr:endr))
+		 WRMUnit%resrv_Tavg = rinittemp
 		 allocate (WRMUnit%resrv_out(begr:endr))
 		 WRMUnit%resrv_out = rinittemp
 		 allocate (WRMUnit%d_resrv(ctlSubwWRM%localNumDam))

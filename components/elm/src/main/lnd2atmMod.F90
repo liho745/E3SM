@@ -37,6 +37,7 @@ module lnd2atmMod
   use SedFluxType          , only : sedflux_type
   use spmdmod          , only: masterproc
   use elm_varctl     , only : iulog
+  use seq_flds_mod    , only : rof_bgc
   !
   ! !PUBLIC TYPES:
   implicit none
@@ -493,7 +494,23 @@ contains
          sedflux_vars%sed_yld_col(bounds%begc:bounds%endc), &
          lnd2atm_vars%qflx_rofmud_grc(bounds%begg:bounds%endg), &
          c2l_scale_type= 'urbanf', l2g_scale_type='unity' )
+             
+    if (rof_bgc) then
+       call c2g( bounds, &
+            col_cf%somc_yield (bounds%begc:bounds%endc), &
+            lnd2atm_vars%qflx_rofliq_qsur_poc_grc   (bounds%begg:bounds%endg), &
+            c2l_scale_type= 'urbanf', l2g_scale_type='unity' )
+       call c2g( bounds, &
+            col_cf%f_doc_soil_qsur (bounds%begc:bounds%endc), &
+            lnd2atm_vars%qflx_rofliq_qsur_doc_grc   (bounds%begg:bounds%endg), &
+            c2l_scale_type= 'urbanf', l2g_scale_type='unity' )
     
+       call c2g( bounds, &
+            col_cf%f_doc_soil_qsub (bounds%begc:bounds%endc), &
+            lnd2atm_vars%qflx_rofliq_qsub_doc_grc   (bounds%begg:bounds%endg), &
+            c2l_scale_type= 'urbanf', l2g_scale_type='unity' )
+    end if
+	
     end associate
   end subroutine lnd2atm
 

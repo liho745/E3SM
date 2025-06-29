@@ -651,7 +651,7 @@ contains
             mapper_Sa2r%mbname = 'mapper_Sa2r'
 #endif
        endif
-	   
+       
        call shr_sys_flush(logunit)
 
     end if
@@ -1214,6 +1214,20 @@ use iMOAB , only :  iMOAB_GetDoubleTagStorage
     integer, save :: index_l2x_coszen_str
     integer, save :: index_x2r_coszen_str
 
+    !river_bgc
+    integer, save :: index_l2x_Flrl_rofsur_DOC
+    integer, save :: index_l2x_Flrl_rofsur_POC
+    integer, save :: index_l2x_Flrl_rofsub_DOC
+    integer, save :: index_l2x_Flrl_rofsub_POC
+    integer, save :: index_l2x_Flrl_rofi_DOC
+    integer, save :: index_l2x_Flrl_rofi_POC
+    integer, save :: index_x2r_Flrl_rofsur_DOC
+    integer, save :: index_x2r_Flrl_rofsur_POC
+    integer, save :: index_x2r_Flrl_rofsub_DOC
+    integer, save :: index_x2r_Flrl_rofsub_POC
+    integer, save :: index_x2r_Flrl_rofi_DOC
+    integer, save :: index_x2r_Flrl_rofi_POC                                       
+
     integer, save :: index_frac
     real(r8)      :: frac
     character(CL) :: fracstr
@@ -1266,6 +1280,22 @@ use iMOAB , only :  iMOAB_GetDoubleTagStorage
          index_x2r_Flrl_Tqsub = mct_aVect_indexRA(x2r_r,'Flrl_Tqsub' )
        endif
 
+       !river_bgc
+       if (rof_bgc) then
+         index_l2x_Flrl_rofsur_DOC= mct_aVect_indexRA(l2x_r,'Flrl_rofsur_DOC' )
+         index_l2x_Flrl_rofsur_POC= mct_aVect_indexRA(l2x_r,'Flrl_rofsur_POC' )
+         index_l2x_Flrl_rofsub_DOC= mct_aVect_indexRA(l2x_r,'Flrl_rofsub_DOC' )
+         index_l2x_Flrl_rofsub_POC= mct_aVect_indexRA(l2x_r,'Flrl_rofsub_POC' )
+         index_l2x_Flrl_rofi_DOC= mct_aVect_indexRA(l2x_r,'Flrl_rofi_DOC' )
+         index_l2x_Flrl_rofi_POC= mct_aVect_indexRA(l2x_r,'Flrl_rofi_POC' )
+         index_x2r_Flrl_rofsur_DOC= mct_aVect_indexRA(x2r_r,'Flrl_rofsur_DOC' )
+         index_x2r_Flrl_rofsur_POC= mct_aVect_indexRA(x2r_r,'Flrl_rofsur_POC' )
+         index_x2r_Flrl_rofsub_DOC= mct_aVect_indexRA(x2r_r,'Flrl_rofsub_DOC' )
+         index_x2r_Flrl_rofsub_POC= mct_aVect_indexRA(x2r_r,'Flrl_rofsub_POC' )
+         index_x2r_Flrl_rofi_DOC= mct_aVect_indexRA(x2r_r,'Flrl_rofi_DOC' )
+         index_x2r_Flrl_rofi_POC= mct_aVect_indexRA(x2r_r,'Flrl_rofi_POC' )
+       end if
+       
        index_l2x_Flrl_rofl_16O = mct_aVect_indexRA(l2x_r,'Flrl_rofl_16O', perrWith='quiet' )
        if ( index_l2x_Flrl_rofl_16O /= 0 ) flds_wiso_rof = .true.
        if ( flds_wiso_rof ) then
@@ -1314,6 +1344,7 @@ use iMOAB , only :  iMOAB_GetDoubleTagStorage
           mrgstr(index_x2r_Flrl_Tqsur) = trim(mrgstr(index_x2r_Flrl_Tqsur))//' = '//'l2x%Flrl_Tqsur'
           mrgstr(index_x2r_Flrl_Tqsur) = trim(mrgstr(index_x2r_Flrl_Tqsub))//' = '//'l2x%Flrl_Tqsub'
        endif
+              
        if ( flds_wiso_rof ) then
           mrgstr(index_x2r_Flrl_rofl_16O) = trim(mrgstr(index_x2r_Flrl_rofl_16O))//' = '// &
                trim(fracstr)//'*l2x%Flrl_rofl_16O'
@@ -1371,6 +1402,23 @@ use iMOAB , only :  iMOAB_GetDoubleTagStorage
 
        endif 
 
+       if (rof_bgc) then
+          mrgstr(index_x2r_Flrl_rofsur_DOC) = trim(mrgstr(index_x2r_Flrl_rofsur_DOC))//' = '// &
+             'lfrac*l2x%Flrl_rofsur_DOC'
+          mrgstr(index_x2r_Flrl_rofsur_POC) = trim(mrgstr(index_x2r_Flrl_rofsur_POC))//' = '// &
+             'lfrac*l2x%Flrl_rofsur_POC'      
+               
+          mrgstr(index_x2r_Flrl_rofsub_DOC) = trim(mrgstr(index_x2r_Flrl_rofsub_DOC))//' = '// &
+             'lfrac*l2x%Flrl_rofsub_DOC'
+          mrgstr(index_x2r_Flrl_rofsub_POC) = trim(mrgstr(index_x2r_Flrl_rofsub_POC))//' = '// &
+             'lfrac*l2x%Flrl_rofsub_POC'    
+             
+          mrgstr(index_x2r_Flrl_rofi_DOC) = trim(mrgstr(index_x2r_Flrl_rofi_DOC))//' = '// &
+             'lfrac*l2x%Flrl_rofi_DOC'
+          mrgstr(index_x2r_Flrl_rofi_POC) = trim(mrgstr(index_x2r_Flrl_rofi_POC))//' = '// &
+             'lfrac*l2x%Flrl_rofi_POC'                                                                              
+       end if
+
        if (ocn_rof_two_way) then
           index_o2x_So_ssh = mct_aVect_indexRA(o2x_r,'So_ssh')
           index_x2r_So_ssh = mct_aVect_indexRA(x2r_r,'So_ssh')
@@ -1417,7 +1465,17 @@ use iMOAB , only :  iMOAB_GetDoubleTagStorage
           x2r_r%rAttr(index_x2r_Faxa_swvdf,i) = a2x_r%rAttr(index_a2x_Faxa_swvdf,i)
           x2r_r%rAttr(index_x2r_Faxa_lwdn,i)  = a2x_r%rAttr(index_a2x_Faxa_lwdn,i)
        endif
-
+       
+       if (rof_bgc) then
+          !river_bgc 
+          x2r_r%rAttr(index_x2r_Flrl_rofsur_DOC,i) = l2x_r%rAttr(index_l2x_Flrl_rofsur_DOC,i) * lfrac
+          x2r_r%rAttr(index_x2r_Flrl_rofsur_POC,i) = l2x_r%rAttr(index_l2x_Flrl_rofsur_POC,i) * lfrac
+          x2r_r%rAttr(index_x2r_Flrl_rofsub_DOC,i) = l2x_r%rAttr(index_l2x_Flrl_rofsub_DOC,i) * lfrac
+          x2r_r%rAttr(index_x2r_Flrl_rofsub_POC,i) = l2x_r%rAttr(index_l2x_Flrl_rofsub_POC,i) * lfrac
+          x2r_r%rAttr(index_x2r_Flrl_rofi_DOC,i) = l2x_r%rAttr(index_l2x_Flrl_rofi_DOC,i) * lfrac
+          x2r_r%rAttr(index_x2r_Flrl_rofi_POC,i) = l2x_r%rAttr(index_l2x_Flrl_rofi_POC,i) * lfrac
+       end if`
+       
        if (lnd_rof_two_way) then
          x2r_r%rAttr(index_x2r_Flrl_inundinf,i) = l2x_r%rAttr(index_l2x_Flrl_inundinf,i)
        endif
@@ -1491,7 +1549,7 @@ use iMOAB , only :  iMOAB_GetDoubleTagStorage
     integer, save :: index_l2x_Flrl_rofi_HDO
     integer, save :: index_x2r_Flrl_rofl_HDO
     integer, save :: index_x2r_Flrl_rofi_HDO
-	
+    
     integer, save :: index_l2x_Flrl_Tqsur
     integer, save :: index_l2x_Flrl_Tqsub
     integer, save :: index_a2x_Sa_tbot
@@ -1672,7 +1730,7 @@ use iMOAB , only :  iMOAB_GetDoubleTagStorage
           mrgstr(index_x2r_Flrl_rofi_HDO) = trim(mrgstr(index_x2r_Flrl_rofi_HDO))//' = '// &
                trim(fracstr)//'*l2x%Flrl_rofi_HDO'
        end if
-	   
+       
        if ( rof_heat ) then
           index_a2x_Sa_tbot    = mct_aVect_indexRA(a2x_r,'Sa_tbot')
           index_a2x_Sa_pbot    = mct_aVect_indexRA(a2x_r,'Sa_pbot')
